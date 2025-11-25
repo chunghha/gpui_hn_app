@@ -237,6 +237,9 @@ impl Render for HnLayout {
             .bg(colors.background)
             .font_family(font_serif.clone());
 
+        // Prepare a clone of app_state for the theme toggle handler
+        let app_state_for_theme_toggle = self.app_state.clone();
+
         // Header
         root = root.child(
             div()
@@ -275,12 +278,58 @@ impl Render for HnLayout {
                         .child(
                             div()
                                 .cursor_pointer()
-                                .on_mouse_down(gpui::MouseButton::Left, move |_, _window, _cx| {
-                                    // TODO: Implement theme switching logic here
+                                .on_mouse_down(gpui::MouseButton::Left, move |_, _window, cx| {
+                                    // Use the shared utility to compute the new theme name by flipping
+                                    // the Dark/Light token based on the configured name and runtime hint.
+                                    let current_config_name = app_state_for_theme_toggle
+                                        .read(cx)
+                                        .config
+                                        .theme_name
+                                        .clone();
+
+                                    // `toggle_dark_light` returns the new theme name.
+                                    let computed_name =
+                                        gpui_hn_app::utils::theme::toggle_dark_light(
+                                            &current_config_name,
+                                            Some(cx.theme().is_dark()),
+                                        );
+
+                                    let desired_shared: SharedString =
+                                        gpui::SharedString::from(computed_name.clone());
+
+                                    if let Some(theme) = gpui_component::ThemeRegistry::global(cx)
+                                        .themes()
+                                        .get(&desired_shared)
+                                        .cloned()
+                                    {
+                                        // Registry-style informational log to match existing logs.
+                                        tracing::info!(
+                                            target: "gpui_component::theme::registry",
+                                            "Reload active theme: \"{}\"",
+                                            computed_name
+                                        );
+
+                                        // Apply the theme immediately.
+                                        gpui_component::Theme::global_mut(cx).apply_config(&theme);
+
+                                        // Persist selection to app state so other parts of the app
+                                        // (and future restarts when config is saved) can read it.
+                                        app_state_for_theme_toggle.update(cx, |state, cx| {
+                                            state.config.theme_name = computed_name.clone();
+                                            cx.notify();
+                                        });
+                                    } else {
+                                        tracing::warn!(
+                                            "Requested theme '{}' not found in ThemeRegistry",
+                                            computed_name
+                                        );
+                                    }
                                 })
                                 .child(if cx.theme().is_dark() {
+                                    // Show sun when in dark mode (clicking will switch to light)
                                     "\u{2600}\u{fe0f}"
                                 } else {
+                                    // Show moon when in light mode (clicking will switch to dark)
                                     "\u{1F319}"
                                 }),
                         ),
