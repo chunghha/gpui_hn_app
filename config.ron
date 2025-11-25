@@ -1,0 +1,31 @@
+(
+    // Font settings
+    font_sans: "IBM Plex Sans",
+    font_serif: "IBM Plex Serif",
+    font_mono: "IBM Plex Mono",
+
+    // Preferred theme name to use from ./themes (e.g. "Flexoki Light" or "Flexoki Dark")
+    theme_name: "Flexoki Dark",
+
+    // Path to a theme file or themes directory.
+    // If this points to a file, the parent directory will be watched.
+    theme_file: "./themes",
+
+    // WebView zoom level (percentage)
+    // Default: 120 (120% zoom for better readability)
+    // Adjust this value to make webview content larger or smaller
+    // Examples: 100 (no zoom), 120 (20% larger), 150 (50% larger)
+    webview_zoom: 130,
+
+    // How the app should inject theme colors into the WebView content.
+    // Accepts one of: "none", "light", "dark", or "both".
+    // - "none": never inject styles
+    // - "light": inject only when using a light theme
+    // - "dark": inject only when using a dark theme
+    // - "both": inject for both light and dark themes (default)
+    webview_theme_injection: "none",
+
+    // Window size (in pixels)
+    window_width: 880.0,
+    window_height: 920.0,
+)

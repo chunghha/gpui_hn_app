@@ -1,0 +1,33 @@
+(
+    // Example configuration for gpui-hn-app
+    // Copy this to `config.ron` and edit values as needed.
+
+    // Font settings - names must match installed system fonts (or fall back to defaults)
+    font_sans: "IBM Plex Sans",
+    font_serif: "IBM Plex Serif",
+    font_mono: "IBM Plex Mono",
+
+    // Preferred theme name to apply (must match a theme defined in your theme files)
+    // Examples: "Flexoki Light", "Flexoki Dark"
+    theme_name: "Flexoki Light",
+
+    // Path to a theme file or themes directory.
+    // If this points to a directory, the app will watch it for changes.
+    // Example: "./themes" or "./themes/flexoki.json"
+    theme_file: "./themes",
+
+    // How the application should inject its UI theme into WebView content.
+    // Accepts one of: "none", "light", "dark", "both"
+    // - "none": never inject styles
+    // - "light": inject only when the app is using a light theme
+    // - "dark": inject only when the app is using a dark theme
+    // - "both": inject for both light and dark themes (default)
+    webview_theme_injection: "none",
+
+    // WebView zoom level as a percentage (e.g., 100 = normal, 120 = 20% larger)
+    webview_zoom: 120,
+
+    // Window size in pixels (initial)
+    window_width: 980.0,
+    window_height: 720.0,
+)
