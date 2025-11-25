@@ -1,4 +1,4 @@
-use crate::models::{Comment, Story};
+use crate::internal::models::{Comment, Story};
 use reqwest::blocking::Client;
 use strum_macros::Display;
 
@@ -65,5 +65,11 @@ impl ApiService {
             .map_err(|e| e.to_string())?
             .json()
             .map_err(|e| e.to_string())
+    }
+}
+
+impl Default for ApiService {
+    fn default() -> Self {
+        Self::new()
     }
 }

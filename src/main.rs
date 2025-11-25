@@ -2,14 +2,12 @@ use gpui::{App, Application, Bounds, WindowBounds, WindowOptions, prelude::*, px
 
 mod api;
 mod config;
-mod layout;
-mod models;
-mod scroll;
+mod internal;
 mod state;
-mod webview;
+mod utils;
 
-use layout::HnLayout;
-use state::AppState;
+use crate::internal::layout::HnLayout;
+use crate::state::AppState;
 
 use std::process;
 

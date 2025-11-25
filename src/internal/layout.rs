@@ -1,7 +1,7 @@
 use crate::api::StoryListType;
-use crate::scroll::ScrollState;
+use crate::internal::scroll::ScrollState;
+use crate::internal::webview::make_init_script;
 use crate::state::{AppState, ViewMode};
-use crate::webview::make_init_script;
 use gpui::{Context, Entity, SharedString, Window, div, prelude::*};
 use gpui_component::button::{Button, ButtonVariants};
 use gpui_component::slider::{Slider, SliderEvent, SliderState};
@@ -42,9 +42,9 @@ impl HnLayout {
             let colors = theme.colors;
 
             // Convert GPUI Hsla colors to CSS hex strings using utility
-            let bg_color = gpui_hn_app::utils::theme::hsla_to_hex(colors.background);
-            let fg_color = gpui_hn_app::utils::theme::hsla_to_hex(colors.foreground);
-            let link_color = gpui_hn_app::utils::theme::hsla_to_hex(colors.info);
+            let bg_color = crate::utils::theme::hsla_to_hex(colors.background);
+            let fg_color = crate::utils::theme::hsla_to_hex(colors.foreground);
+            let link_color = crate::utils::theme::hsla_to_hex(colors.info);
 
             tracing::info!(
                 "Initializing webview with zoom: {}%, dark mode: {}, bg: {}, fg: {}",
@@ -288,11 +288,10 @@ impl Render for HnLayout {
                                         .clone();
 
                                     // `toggle_dark_light` returns the new theme name.
-                                    let computed_name =
-                                        gpui_hn_app::utils::theme::toggle_dark_light(
-                                            &current_config_name,
-                                            Some(cx.theme().is_dark()),
-                                        );
+                                    let computed_name = crate::utils::theme::toggle_dark_light(
+                                        &current_config_name,
+                                        Some(cx.theme().is_dark()),
+                                    );
 
                                     let desired_shared: SharedString =
                                         gpui::SharedString::from(computed_name.clone());
@@ -452,9 +451,7 @@ impl Render for HnLayout {
                                     .when_some(story.time, |this, time| {
                                         this.child(
                                             div().flex().gap_1().items_center().child("🕒").child(
-                                                gpui_hn_app::utils::datetime::format_timestamp(
-                                                    &time,
-                                                ),
+                                                crate::utils::datetime::format_timestamp(&time),
                                             ),
                                         )
                                     })
@@ -702,7 +699,7 @@ impl Render for HnLayout {
 }
 
 fn render_comment(
-    comment: &crate::models::Comment,
+    comment: &crate::internal::models::Comment,
     colors: &gpui_component::ThemeColor,
     font_mono: String,
 ) -> impl IntoElement {
@@ -748,7 +745,7 @@ fn render_comment(
                             .gap_1()
                             .items_center()
                             .child("🕒")
-                            .child(gpui_hn_app::utils::datetime::format_timestamp(&time)),
+                            .child(crate::utils::datetime::format_timestamp(&time)),
                     )
                 }),
         )
