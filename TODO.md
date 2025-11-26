@@ -32,9 +32,9 @@
     - [x] Remove hardcoded viewport height approximation (`800.0`) in `layout.rs` scroll handler; use actual window/container size.
 
 ## Testing
-- [ ] **Unit Tests**
-    - [ ] Add unit tests for `make_init_script` in `webview.rs`.
-    - [ ] Add tests for `ApiService` (mocking network requests).
+- [x] **Unit Tests**
+    - [x] Add unit tests for `make_init_script` in `webview.rs`.
+    - [x] Add tests for `ApiService` (mocking network requests).
 - [ ] **Integration Tests**
     - [ ] Validate injection behavior on known test pages.
 
