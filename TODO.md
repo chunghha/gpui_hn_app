@@ -46,7 +46,7 @@
 
 ## Image handling
 
-- [ ] **Initial approach** 
-    - [ ] Surface images found in fetched HTML as simple inline placeholders (e.g. "[Image: alt]") by extracting `<img>` tags when fetching content. This avoids downloading and rendering remote images in the app process and keeps the renderer lightweight.
+- [x] **Initial approach** 
+    - [x] Surface images found in fetched HTML as simple inline placeholders (e.g. "[Image: alt]") by extracting `<img>` tags when fetching content. This avoids downloading and rendering remote images in the app process and keeps the renderer lightweight.
 - [ ] **Tradeoffs**
     - [ ] A regex-based extractor is fast and keeps dependencies small but can miss edge cases; using an HTML parser (e.g. `scraper`/`kuchiki`) is more robust but adds dependencies and complexity. Consider starting with regex and switching to a parser if needed.

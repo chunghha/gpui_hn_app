@@ -2881,7 +2881,7 @@ dependencies = [
 
 [[package]]
 name = "gpui-hn-app"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "anyhow",
  "comrak",
@@ -2894,6 +2894,7 @@ dependencies = [
  "notify 8.2.0",
  "once_cell",
  "raw-window-handle",
+ "regex",
  "reqwest",
  "ron",
  "serde",
