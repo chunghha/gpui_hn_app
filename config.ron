@@ -5,7 +5,7 @@
     font_mono: "IBM Plex Mono",
 
     // Preferred theme name to use from ./themes (e.g. "Flexoki Light" or "Flexoki Dark")
-    theme_name: "Flexoki Dark",
+    theme_name: "Zoegi Light",
 
     // Path to a theme file or themes directory.
     // If this points to a file, the parent directory will be watched.
