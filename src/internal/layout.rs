@@ -1,4 +1,5 @@
 use crate::api::StoryListType;
+use crate::internal::markdown::{MarkdownStyle, render_markdown};
 use crate::internal::scroll::ScrollState;
 use crate::internal::webview::make_init_script;
 use crate::state::{AppState, ViewMode};
@@ -503,6 +504,14 @@ impl Render for HnLayout {
                                             .text_color(colors.foreground)
                                             .child("Loading page content...")
                                     } else if let Some(text) = selected_story_content {
+                                        let style = MarkdownStyle {
+                                            text_color: colors.foreground,
+                                            link_color: colors.info,
+                                            code_bg_color: colors.secondary, // Use secondary color for code blocks
+                                            font_sans: font_sans.clone().into(),
+                                            font_mono: font_mono.clone().into(),
+                                        };
+
                                         div()
                                             .p_4()
                                             .bg(colors.background)
@@ -512,10 +521,8 @@ impl Render for HnLayout {
                                             .text_base()
                                             .line_height(gpui::rems(1.5))
                                             .text_color(colors.foreground)
-                                            .max_h(gpui::px(400.))
-                                            .overflow_hidden()
-                                            .font_family(font_sans.clone())
-                                            .child(text)
+                                            // Removed max_h and overflow_hidden to allow full content reading
+                                            .child(render_markdown(&text, style))
                                     } else if story.url.is_some() {
                                         div()
                                             .p_4()

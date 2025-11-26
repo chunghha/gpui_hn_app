@@ -19,6 +19,7 @@ src/
 ├── internal/         # Internal implementation modules
 │   ├── events.rs     # Keyboard event handling and shortcuts
 │   ├── layout.rs     # UI layout and rendering components
+│   ├── markdown.rs   # Markdown rendering for story content
 │   ├── models.rs     # Data models (Story, Comment)
 │   ├── scroll.rs     # Scroll state management
 │   └── webview.rs    # WebView initialization utilities
@@ -38,6 +39,7 @@ The codebase follows a clear separation between public APIs (`api`, `config`, `s
 
 - Browse Hacker News stories (Best, Top, New, Ask, Show, Job)
 - View story details with comments
+- **Markdown rendering** for story content (bold, italic, links, code blocks)
 - Embedded WebView for reading article content with adjustable zoom slider (50-250%)
 - **Vi-style keyboard shortcuts** for navigation (j/k for scrolling, g for jump to top)
 - Configurable fonts, WebView zoom, and window size
