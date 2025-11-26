@@ -76,7 +76,7 @@ fn replace_first_standalone_token(s: &str, token: &str, replacement: &str) -> Op
             true
         } else {
             // Safe to use byte slicing for ASCII token boundaries
-            let prev_char = s[..abs].chars().next_back().unwrap();
+            let prev_char = s[..abs].chars().next_back().unwrap_or(' ');
             !prev_char.is_alphabetic()
         };
 
@@ -84,7 +84,7 @@ fn replace_first_standalone_token(s: &str, token: &str, replacement: &str) -> Op
         let after_ok = if end == s.len() {
             true
         } else {
-            let next_char = s[end..].chars().next().unwrap();
+            let next_char = s[end..].chars().next().unwrap_or(' ');
             !next_char.is_alphabetic()
         };
 

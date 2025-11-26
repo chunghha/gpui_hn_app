@@ -44,7 +44,7 @@ mod tests {
     fn now_secs() -> i64 {
         SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .unwrap()
+            .expect("Time went backwards")
             .as_secs() as i64
     }
 

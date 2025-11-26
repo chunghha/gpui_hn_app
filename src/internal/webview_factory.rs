@@ -55,7 +55,9 @@ pub fn create_webview<V>(
         let wry_webview = {
             use raw_window_handle::HasWindowHandle;
             let window_handle = window.window_handle().expect("No window handle");
-            builder.build_as_child(&window_handle).unwrap()
+            builder
+                .build_as_child(&window_handle)
+                .expect("Failed to create webview as child window")
         };
 
         #[cfg(not(any(
@@ -69,7 +71,9 @@ pub fn create_webview<V>(
             use gtk::prelude::*;
             let fixed = gtk::Fixed::builder().build();
             fixed.show_all();
-            builder.build_gtk(&fixed).unwrap()
+            builder
+                .build_gtk(&fixed)
+                .expect("Failed to create GTK webview")
         };
 
         WebView::new(wry_webview, window, cx)

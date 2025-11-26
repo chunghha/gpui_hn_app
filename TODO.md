@@ -25,7 +25,7 @@
     - [x] Extract platform-specific WebView creation logic from `HnLayout::new` into a dedicated builder or factory.
 - [x] **Error Handling**
     - [x] Replace `map_err(|e| e.to_string())` in `api/mod.rs` with proper error types (e.g., `thiserror` or `anyhow`) to preserve context.
-    - [ ] Handle `unwrap` calls more gracefully throughout the application.
+    - [x] Handle `unwrap` calls more gracefully throughout the application.
 
 ### Configuration
 - [x] **Hardcoded Values**
@@ -37,6 +37,12 @@
     - [ ] Add tests for `ApiService` (mocking network requests).
 - [ ] **Integration Tests**
     - [ ] Validate injection behavior on known test pages.
+
+## Cross-Platform Support
+- [ ] **Linux Verification**
+    - [ ] Verify `webview_factory.rs` compilation on Linux.
+    - [ ] Add `gtk` to `Cargo.toml` under `[target.'cfg(target_os = "linux")'.dependencies]` if missing (currently missing).
+    - [ ] Test WebView rendering with `wry` and `gtk` integration.
 
 ## Image handling
 
