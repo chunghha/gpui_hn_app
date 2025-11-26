@@ -1,3 +1,4 @@
+pub mod events;
 pub mod layout;
 pub mod models;
 pub mod scroll;

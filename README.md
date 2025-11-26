@@ -10,11 +10,36 @@ This application is built entirely with GPUI, Zed's GPU-accelerated UI framework
 - **Native performance** - GPU-accelerated rendering
 - **Theming system** - Dynamic theme support with hot-reloading
 
+### Project Structure
+
+```
+src/
+├── api/              # Hacker News API service and types
+├── config.rs         # Configuration loading and management
+├── internal/         # Internal implementation modules
+│   ├── events.rs     # Keyboard event handling and shortcuts
+│   ├── layout.rs     # UI layout and rendering components
+│   ├── models.rs     # Data models (Story, Comment)
+│   ├── scroll.rs     # Scroll state management
+│   └── webview.rs    # WebView initialization utilities
+├── state/            # Application state management
+│   └── mod.rs        # AppState with async story/comment fetching
+├── utils/            # Utility functions
+│   ├── datetime.rs   # Timestamp formatting
+│   ├── html.rs       # HTML text extraction
+│   └── theme.rs      # Theme color utilities
+├── lib.rs            # Library entry point
+└── main.rs           # Application entry point
+```
+
+The codebase follows a clear separation between public APIs (`api`, `config`, `state`) and internal implementation details (`internal/*`). The `internal` module encapsulates components that are implementation-specific and not part of the public API surface.
+
 ## Features
 
 - Browse Hacker News stories (Best, Top, New, Ask, Show, Job)
 - View story details with comments
 - Embedded WebView for reading article content with adjustable zoom slider (50-250%)
+- **Vi-style keyboard shortcuts** for navigation (j/k for scrolling, g for jump to top)
 - Configurable fonts, WebView zoom, and window size
 - Dark/Light theme support (Flexoki theme included)
 - Responsive scrolling with infinite loading
@@ -103,6 +128,21 @@ cargo run --release
 5. Use the zoom slider at the bottom of the webview to adjust content size (50-250%)
 6. Use the "← Back" button to return to the previous view
 7. Toggle dark/light mode with the sun/moon icon in the header
+
+### Keyboard Shortcuts
+
+The app supports vi-style keyboard shortcuts for efficient navigation:
+
+| Shortcut | Action |
+|----------|--------|
+| `j` | Scroll down (50px) |
+| `k` | Scroll up (50px) |
+| `g` | Jump to top |
+| `Cmd+Q` (Mac) / `Ctrl+Q` (Windows/Linux) | Quit application |
+
+**Notes:**
+- Keyboard shortcuts work in both List view and Story detail view
+- Scrolling shortcuts apply to the current view's content
 
 ## Components Used
 

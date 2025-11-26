@@ -23,10 +23,15 @@ impl ScrollState {
         self.scroll_y = (self.scroll_y + delta).max(0.0);
     }
 
-    /// Reset scroll position to top
+    /// Scroll to the top of the content
+    pub fn scroll_to_top(&mut self) {
+        self.scroll_y = 0.0;
+    }
+
+    /// Reset scroll position to top (alias for scroll_to_top)
     #[allow(dead_code)]
     pub fn reset(&mut self) {
-        self.scroll_y = 0.0;
+        self.scroll_to_top();
     }
 
     /// Set the maximum scroll position based on content and viewport heights

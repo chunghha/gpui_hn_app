@@ -2,7 +2,7 @@ use crate::api::StoryListType;
 use crate::internal::scroll::ScrollState;
 use crate::internal::webview::make_init_script;
 use crate::state::{AppState, ViewMode};
-use gpui::{Context, Entity, SharedString, Window, div, prelude::*};
+use gpui::{Context, Entity, FocusHandle, SharedString, Window, div, prelude::*};
 use gpui_component::button::{Button, ButtonVariants};
 use gpui_component::slider::{Slider, SliderEvent, SliderState};
 use gpui_component::theme::ActiveTheme;
@@ -10,13 +10,14 @@ use gpui_component::webview::WebView;
 
 pub struct HnLayout {
     title: SharedString,
-    app_state: Entity<AppState>,
-    scroll_state: ScrollState,
-    list_scroll_state: ScrollState,
+    pub(crate) app_state: Entity<AppState>,
+    pub(crate) scroll_state: ScrollState,
+    pub(crate) list_scroll_state: ScrollState,
     webview: Entity<WebView>,
     current_webview_url: Option<String>,
     current_zoom_level: u32,
     slider_state: Entity<SliderState>,
+    focus_handle: FocusHandle,
 }
 
 impl HnLayout {
@@ -118,6 +119,8 @@ impl HnLayout {
         })
         .detach();
 
+        let focus_handle = cx.focus_handle();
+
         Self {
             title: "Hacker News".into(),
             app_state: app_state.clone(),
@@ -127,6 +130,7 @@ impl HnLayout {
             current_webview_url: None,
             current_zoom_level: app_state.read(cx).config.webview_zoom,
             slider_state,
+            focus_handle,
         }
     }
 }
@@ -229,13 +233,16 @@ impl Render for HnLayout {
             }
         }
 
-        // Root container
+        // Root container with keyboard event handling
         let mut root = div()
+            .track_focus(&self.focus_handle)
+            .id("root")
             .flex()
             .flex_col()
             .size_full()
             .bg(colors.background)
-            .font_family(font_serif.clone());
+            .font_family(font_serif.clone())
+            .on_key_down(cx.listener(crate::internal::events::handle_key_down));
 
         // Prepare a clone of app_state for the theme toggle handler
         let app_state_for_theme_toggle = self.app_state.clone();
