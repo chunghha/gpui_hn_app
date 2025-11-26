@@ -20,15 +20,15 @@
 ## Refactoring & Code Quality
 
 ### Architecture
-- [ ] **Componentization**
-    - [ ] Break down `HnLayout::render` into smaller, reusable components (e.g., `StoryList`, `StoryDetail`, `Header`).
-    - [ ] Extract platform-specific WebView creation logic from `HnLayout::new` into a dedicated builder or factory.
-- [ ] **Error Handling**
-    - [ ] Replace `map_err(|e| e.to_string())` in `api/mod.rs` with proper error types (e.g., `thiserror` or `anyhow`) to preserve context.
+- [x] **Componentization**
+    - [x] Break down `HnLayout::render` into smaller, reusable components (e.g., `StoryList`, `StoryDetail`, `Header`).
+    - [x] Extract platform-specific WebView creation logic from `HnLayout::new` into a dedicated builder or factory.
+- [x] **Error Handling**
+    - [x] Replace `map_err(|e| e.to_string())` in `api/mod.rs` with proper error types (e.g., `thiserror` or `anyhow`) to preserve context.
     - [ ] Handle `unwrap` calls more gracefully throughout the application.
 
 ### Configuration
-- [ ] **Hardcoded Values**
+- [x] **Hardcoded Values**
     - [x] Remove hardcoded viewport height approximation (`800.0`) in `layout.rs` scroll handler; use actual window/container size.
 
 ## Testing
@@ -37,3 +37,10 @@
     - [ ] Add tests for `ApiService` (mocking network requests).
 - [ ] **Integration Tests**
     - [ ] Validate injection behavior on known test pages.
+
+## Image handling
+
+- [ ] **Initial approach** 
+    - [ ] Surface images found in fetched HTML as simple inline placeholders (e.g. "[Image: alt]") by extracting `<img>` tags when fetching content. This avoids downloading and rendering remote images in the app process and keeps the renderer lightweight.
+- [ ] **Tradeoffs**
+    - [ ] A regex-based extractor is fast and keeps dependencies small but can miss edge cases; using an HTML parser (e.g. `scraper`/`kuchiki`) is more robust but adds dependencies and complexity. Consider starting with regex and switching to a parser if needed.

@@ -7,6 +7,7 @@ mod state;
 mod utils;
 
 use crate::internal::layout::HnLayout;
+use crate::internal::ui::{StoryDetailView, StoryListView};
 use crate::state::AppState;
 
 use std::process;
@@ -58,7 +59,20 @@ fn main() {
                 window_bounds: Some(WindowBounds::Windowed(bounds)),
                 ..Default::default()
             },
-            move |window, cx| cx.new(move |cx| HnLayout::new(app_state.clone(), window, cx)),
+            move |window, cx| {
+                cx.new(move |cx| {
+                    let story_list_view = cx.new(|cx| StoryListView::new(app_state.clone(), cx));
+                    let story_detail_view =
+                        cx.new(|cx| StoryDetailView::new(app_state.clone(), cx));
+                    HnLayout::new(
+                        app_state.clone(),
+                        story_list_view,
+                        story_detail_view,
+                        window,
+                        cx,
+                    )
+                })
+            },
         );
 
         if let Err(e) = result {

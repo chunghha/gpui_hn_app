@@ -26,6 +26,10 @@ pub struct AppConfig {
     /// - "both": inject for both themes
     #[serde(default = "default_webview_theme_injection")]
     pub webview_theme_injection: String,
+    /// Maximum run length before inserting soft-wrap break characters.
+    /// Set to 0 to disable the soft-wrap insertion behavior.
+    #[serde(default = "default_soft_wrap_max_run")]
+    pub soft_wrap_max_run: usize,
     /// Window width in pixels
     #[serde(default = "default_window_width")]
     pub window_width: f32,
@@ -36,12 +40,18 @@ pub struct AppConfig {
 
 fn default_webview_theme_injection() -> String {
     // Default to not injecting theme into WebView content.
-    // Unknown/absent config -> treat as \"none\" (do not inject).
+    // Unknown/absent config -> treat as "none" (do not inject).
     "none".to_string()
 }
 
 fn default_webview_zoom() -> u32 {
     120
+}
+
+/// Default maximum run length before inserting soft-wrap characters.
+/// A value of 0 disables the soft-wrap behavior.
+fn default_soft_wrap_max_run() -> usize {
+    20
 }
 
 fn default_window_width() -> f32 {
@@ -70,6 +80,7 @@ impl Default for AppConfig {
             theme_file: default_theme_file(),
             webview_zoom: 120,
             webview_theme_injection: default_webview_theme_injection(),
+            soft_wrap_max_run: default_soft_wrap_max_run(),
             window_width: 980.0,
             window_height: 720.0,
         }

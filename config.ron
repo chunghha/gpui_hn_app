@@ -25,6 +25,10 @@
     // - "both": inject for both light and dark themes (default)
     webview_theme_injection: "none",
 
+    // Maximum run length before inserting soft-wrap break characters into text.
+    // Set to 0 to disable soft-wrapping entirely.
+    soft_wrap_max_run: 20,
+
     // Window size (in pixels)
     window_width: 880.0,
     window_height: 920.0,

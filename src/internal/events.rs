@@ -30,12 +30,14 @@ pub fn handle_key_down(
             let view_mode = viewer.app_state.read(cx).view_mode.clone();
             match view_mode {
                 ViewMode::List => {
-                    viewer.list_scroll_state.scroll_by(SCROLL_STEP);
-                    tracing::debug!("List scroll down to: {}", viewer.list_scroll_state.scroll_y);
+                    viewer.story_list_view().update(cx, |view, _| {
+                        view.scroll_by(SCROLL_STEP);
+                    });
                 }
                 ViewMode::Story(_) => {
-                    viewer.scroll_state.scroll_by(SCROLL_STEP);
-                    tracing::debug!("Story scroll down to: {}", viewer.scroll_state.scroll_y);
+                    viewer.story_detail_view().update(cx, |view, _| {
+                        view.scroll_by(SCROLL_STEP);
+                    });
                 }
                 ViewMode::Webview(_) => {
                     // WebView handles its own scrolling
@@ -48,12 +50,14 @@ pub fn handle_key_down(
             let view_mode = viewer.app_state.read(cx).view_mode.clone();
             match view_mode {
                 ViewMode::List => {
-                    viewer.list_scroll_state.scroll_by(-SCROLL_STEP);
-                    tracing::debug!("List scroll up to: {}", viewer.list_scroll_state.scroll_y);
+                    viewer.story_list_view().update(cx, |view, _| {
+                        view.scroll_by(-SCROLL_STEP);
+                    });
                 }
                 ViewMode::Story(_) => {
-                    viewer.scroll_state.scroll_by(-SCROLL_STEP);
-                    tracing::debug!("Story scroll up to: {}", viewer.scroll_state.scroll_y);
+                    viewer.story_detail_view().update(cx, |view, _| {
+                        view.scroll_by(-SCROLL_STEP);
+                    });
                 }
                 ViewMode::Webview(_) => {
                     // WebView handles its own scrolling
@@ -66,12 +70,14 @@ pub fn handle_key_down(
             let view_mode = viewer.app_state.read(cx).view_mode.clone();
             match view_mode {
                 ViewMode::List => {
-                    viewer.list_scroll_state.scroll_to_top();
-                    tracing::debug!("List scroll to top: {}", viewer.list_scroll_state.scroll_y);
+                    viewer.story_list_view().update(cx, |view, _| {
+                        view.scroll_to_top();
+                    });
                 }
                 ViewMode::Story(_) => {
-                    viewer.scroll_state.scroll_to_top();
-                    tracing::debug!("Story scroll to top: {}", viewer.scroll_state.scroll_y);
+                    viewer.story_detail_view().update(cx, |view, _| {
+                        view.scroll_to_top();
+                    });
                 }
                 ViewMode::Webview(_) => {
                     // WebView handles its own scrolling

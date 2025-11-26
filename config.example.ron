@@ -27,6 +27,10 @@
     // WebView zoom level as a percentage (e.g., 100 = normal, 120 = 20% larger)
     webview_zoom: 120,
 
+    // Maximum run length before inserting soft-wrap characters.
+    // Set to 0 to disable soft-wrapping entirely.
+    soft_wrap_max_run: 20,
+
     // Window size in pixels (initial)
     window_width: 980.0,
     window_height: 720.0,
