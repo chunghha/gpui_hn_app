@@ -12,10 +12,10 @@
     - [ ] Improve `hide_webview` to remember and restore the previous view state (e.g., return to specific story detail).
 
 ### Story & Comments
-- [ ] **Pagination & Loading**
-    - [ ] Refactor `fetch_more_stories` logic to be more robust against failed fetches and accurate with `loaded_count`.
-    - [ ] Implement better pagination for comments (currently limited to top 20).
-    - [ ] Add visual feedback for "end of list" or "no more stories".
+- [x] **Pagination & Loading**
+    - [x] Refactor `fetch_more_stories` logic to be more robust against failed fetches and accurate with `loaded_count`.
+    - [x] Implement better pagination for comments (currently limited to top 20).
+    - [x] Add visual feedback for "end of list" or "no more stories".
 
 ## Refactoring & Code Quality
 

@@ -6,6 +6,7 @@ use gpui::{
     Context, Entity, FocusHandle, IntoElement, MouseButton, Render, SharedString, Window, div,
     prelude::*,
 };
+use gpui_component::Disableable;
 use gpui_component::button::{Button, ButtonVariants};
 use gpui_component::theme::{ActiveTheme, ThemeColor};
 
@@ -59,6 +60,8 @@ impl Render for StoryDetailView {
         let selected_story_content_loading = app_state.selected_story_content_loading;
         let comments = app_state.comments.clone();
         let comments_loading = app_state.comments_loading;
+        let loaded_comment_count = app_state.loaded_comment_count;
+        let total_comment_count = app_state.comment_ids.len();
         let _ = app_state; // Release borrow
 
         let scroll_y = self.scroll_state.scroll_y;
@@ -152,14 +155,17 @@ impl Render for StoryDetailView {
                             })
                     })
                     // Comments section
-                    .child(render_comments_list(
-                        &story,
-                        &comments,
-                        comments_loading,
-                        &colors,
-                        font_mono.clone().into(),
-                        config.soft_wrap_max_run,
-                    )),
+                    .child(render_comments_list(CommentsListParams {
+                        story: &story,
+                        comments: &comments,
+                        loading: comments_loading,
+                        colors: &colors,
+                        font_mono: font_mono.clone().into(),
+                        max_run: config.soft_wrap_max_run,
+                        app_state: self.app_state.clone(),
+                        loaded_comment_count,
+                        total_comment_count,
+                    })),
             )
     }
 }
@@ -247,14 +253,21 @@ fn render_story_header(
         })
 }
 
-fn render_comments_list(
-    story: &crate::internal::models::Story,
-    comments: &[Comment],
+struct CommentsListParams<'a> {
+    story: &'a crate::internal::models::Story,
+    comments: &'a [Comment],
     loading: bool,
-    colors: &ThemeColor,
+    colors: &'a ThemeColor,
     font_mono: SharedString,
     max_run: usize,
-) -> impl IntoElement {
+    app_state: Entity<AppState>,
+    loaded_comment_count: usize,
+    total_comment_count: usize,
+}
+
+fn render_comments_list(params: CommentsListParams) -> impl IntoElement {
+    let has_more_comments = params.loaded_comment_count < params.total_comment_count;
+
     div()
         .flex()
         .flex_col()
@@ -264,26 +277,58 @@ fn render_comments_list(
             div()
                 .text_lg()
                 .font_weight(gpui::FontWeight::BOLD)
-                .text_color(colors.foreground)
-                .child(format!("Comments ({})", story.descendants.unwrap_or(0))),
+                .text_color(params.colors.foreground)
+                .child(format!(
+                    "Comments ({})",
+                    params.story.descendants.unwrap_or(0)
+                )),
         )
-        .child(if loading {
+        .child(if params.loading && params.comments.is_empty() {
             div()
                 .p_4()
                 .text_sm()
-                .text_color(colors.foreground)
+                .text_color(params.colors.foreground)
                 .child("Loading comments...")
-        } else if comments.is_empty() {
+        } else if params.comments.is_empty() {
             div()
                 .p_4()
                 .text_sm()
-                .text_color(colors.foreground)
+                .text_color(params.colors.foreground)
                 .child("No comments yet")
         } else {
-            div().flex().flex_col().gap_2().children(
-                comments
-                    .iter()
-                    .map(|comment| render_comment(comment, colors, font_mono.clone(), max_run)),
+            div()
+                .flex()
+                .flex_col()
+                .gap_2()
+                .children(params.comments.iter().map(|comment| {
+                    render_comment(
+                        comment,
+                        params.colors,
+                        params.font_mono.clone(),
+                        params.max_run,
+                    )
+                }))
+        })
+        .when(has_more_comments && !params.comments.is_empty(), |this| {
+            let label_text = if params.loading {
+                "Loading more comments...".to_string()
+            } else {
+                format!(
+                    "Load More Comments ({} of {})",
+                    params.loaded_comment_count, params.total_comment_count
+                )
+            };
+
+            this.child(
+                div().flex().justify_center().mt_4().child(
+                    Button::new("load-more-comments")
+                        .primary()
+                        .label(label_text)
+                        .disabled(params.loading)
+                        .on_click(move |_, _w, cx| {
+                            AppState::fetch_more_comments(params.app_state.clone(), cx);
+                        }),
+                ),
             )
         })
 }

@@ -17,6 +17,8 @@ mod imp {
     pub struct AppState {
         pub stories: Vec<Story>,
         pub loading: bool,
+        pub loading_more: bool,
+        pub all_stories_loaded: bool,
         pub current_list: StoryListType,
         api_service: Arc<ApiService>,
         pub view_mode: ViewMode,
@@ -24,6 +26,8 @@ mod imp {
         pub selected_story_content_loading: bool,
         pub comments: Vec<Comment>,
         pub comments_loading: bool,
+        pub loaded_comment_count: usize,
+        pub comment_ids: Vec<u32>,
         pub config: crate::config::AppConfig,
         pub story_ids: Vec<u32>,
         pub loaded_count: usize,
@@ -35,6 +39,8 @@ mod imp {
             cx.new(|_cx| Self {
                 stories: Vec::new(),
                 loading: false,
+                loading_more: false,
+                all_stories_loaded: false,
                 current_list: StoryListType::Best,
                 api_service,
                 view_mode: ViewMode::List,
@@ -42,6 +48,8 @@ mod imp {
                 selected_story_content_loading: false,
                 comments: Vec::new(),
                 comments_loading: false,
+                loaded_comment_count: 0,
+                comment_ids: Vec::new(),
                 config,
                 story_ids: Vec::new(),
                 loaded_count: 0,
@@ -54,6 +62,8 @@ mod imp {
             entity.update(cx, |state, cx| {
                 tracing::info!("List type changed, resetting state.");
                 state.loading = true;
+                state.loading_more = false;
+                state.all_stories_loaded = false;
                 state.current_list = list_type;
                 state.stories.clear();
                 state.story_ids.clear();
@@ -106,72 +116,78 @@ mod imp {
         }
 
         pub async fn fetch_more_stories(entity: Entity<Self>, cx: &mut gpui::AsyncApp) {
-            let (api_service, ids_to_fetch) = entity
+            // Get the batch of IDs to fetch and track the batch size
+            let (api_service, ids_to_fetch, batch_size) = entity
                 .update(cx, |state, cx| {
+                    // Check if we've already loaded all stories
                     if state.loaded_count >= state.story_ids.len() {
                         state.loading = false;
+                        state.loading_more = false;
+                        state.all_stories_loaded = true;
                         cx.notify();
-                        return (None, Vec::new());
+                        return (None, Vec::new(), 0);
                     }
 
-                    state.loading = true;
+                    // Use loading_more for pagination, loading for initial fetch
+                    state.loading_more = true;
                     cx.notify();
 
                     let start = state.loaded_count;
                     let end = (start + 20).min(state.story_ids.len());
                     let ids = state.story_ids[start..end].to_vec();
+                    let batch_size = ids.len();
 
-                    (Some(state.api_service.clone()), ids)
+                    (Some(state.api_service.clone()), ids, batch_size)
                 })
                 .ok()
-                .unwrap_or((None, Vec::new()));
+                .unwrap_or((None, Vec::new(), 0));
 
             if let Some(api_service) = api_service {
                 let (tx, mut rx) = mpsc::unbounded::<Vec<Story>>();
+                let ids_clone = ids_to_fetch.clone();
 
                 cx.background_executor()
                     .spawn(async move {
                         tracing::info!("Fetching {} story details...", ids_to_fetch.len());
                         let mut stories = Vec::new();
+                        let mut failed_count = 0;
+
                         for id in ids_to_fetch {
-                            if let Ok(story) = api_service.fetch_story_content(id) {
-                                stories.push(story);
+                            match api_service.fetch_story_content(id) {
+                                Ok(story) => stories.push(story),
+                                Err(e) => {
+                                    failed_count += 1;
+                                    tracing::warn!("Failed to fetch story {}: {}", id, e);
+                                }
                             }
                         }
+
+                        if failed_count > 0 {
+                            tracing::warn!(
+                                "Completed batch with {} failures out of {} attempts",
+                                failed_count,
+                                ids_clone.len()
+                            );
+                        }
+
                         let _ = tx.unbounded_send(stories);
                     })
                     .detach();
 
                 if let Some(new_stories) = rx.next().await {
-                    let _ = entity.update(cx, |state, _cx| {
-                        state.stories.extend(new_stories);
-                        state.loaded_count += 20; // Approximate, or we could use new_stories.len()
-                        // Correctly update loaded_count based on actual fetched batch size attempted
-                        // But to be safe against failures, maybe just increment by batch size?
-                        // Let's stick to the logic: we tried to load 20.
-                        // Actually, better to just set loaded_count to stories.len() if we trust it,
-                        // but we might have failed fetches.
-                        // Let's just increment by the number of IDs we TRIED to fetch to avoid stuck loops?
-                        // Or better: loaded_count should reflect the index in story_ids.
-                        // So:
-                        let _current_len = state.stories.len(); // This might be less if some failed
-                        // We need to track where we are in story_ids.
-                        // Let's rely on the previous calculation: start + 20.
-                        // So we need to store the intended new count or just re-calculate.
-                        // Let's just assume 20 for now as per requirement.
-                        // A cleaner way:
-                    });
-                    // Re-read state to update loaded_count correctly
                     let _ = entity.update(cx, |state, cx| {
-                        let new_count = (state.loaded_count + 20).min(state.story_ids.len());
-                        state.loaded_count = new_count;
+                        state.stories.extend(new_stories);
+                        // Increment loaded_count by the batch size (number of IDs attempted)
+                        // This ensures we don't get stuck even if some fetches fail
+                        state.loaded_count += batch_size;
+                        state.loading_more = false;
                         state.loading = false;
 
-                        if let ViewMode::Story(sel) = &state.view_mode
-                            && !state.stories.iter().any(|s| s.id == sel.id)
-                        {
-                            // selection is gone, should not happen
+                        // Check if we've now loaded everything
+                        if state.loaded_count >= state.story_ids.len() {
+                            state.all_stories_loaded = true;
                         }
+
                         cx.notify();
                     });
                 }
@@ -187,6 +203,8 @@ mod imp {
                 state.selected_story_content = None;
                 state.selected_story_content_loading = true;
                 state.comments.clear();
+                state.comment_ids.clear();
+                state.loaded_comment_count = 0;
                 state.comments_loading = false;
                 cx.notify();
             });
@@ -257,6 +275,8 @@ mod imp {
                 state.selected_story_content = None;
                 state.selected_story_content_loading = false;
                 state.comments.clear();
+                state.comment_ids.clear();
+                state.loaded_comment_count = 0;
                 state.comments_loading = false;
                 cx.notify();
             });
@@ -305,6 +325,8 @@ mod imp {
             let api_service = entity.read(cx).api_service.clone();
             entity.update(cx, |state, cx| {
                 state.comments_loading = true;
+                state.comment_ids = comment_ids.clone();
+                state.loaded_comment_count = 0;
                 cx.notify();
             });
 
@@ -321,6 +343,7 @@ mod imp {
                         if let Some(comments) = rx.next().await {
                             let _ = entity.update(&mut async_cx, |state, cx| {
                                 state.comments = comments;
+                                state.loaded_comment_count = 20.min(state.comment_ids.len());
                                 state.comments_loading = false;
                                 cx.notify();
                             });
@@ -347,6 +370,69 @@ mod imp {
                     let _ = tx.unbounded_send(comments);
                 })
                 .detach();
+        }
+
+        pub fn fetch_more_comments(entity: Entity<Self>, cx: &mut App) {
+            let (api_service, comment_ids_to_fetch, batch_size) = entity.update(cx, |state, cx| {
+                // Check if we've already loaded all comments
+                if state.loaded_comment_count >= state.comment_ids.len() {
+                    state.comments_loading = false;
+                    cx.notify();
+                    return (None, Vec::new(), 0);
+                }
+
+                state.comments_loading = true;
+                cx.notify();
+
+                let start = state.loaded_comment_count;
+                let end = (start + 20).min(state.comment_ids.len());
+                let ids = state.comment_ids[start..end].to_vec();
+                let batch_size = end - start;
+
+                (Some(state.api_service.clone()), ids, batch_size)
+            });
+
+            if let Some(api_service) = api_service {
+                let (tx, mut rx) = mpsc::unbounded::<Vec<Comment>>();
+                let background = cx.background_executor().clone();
+                let foreground = cx.foreground_executor().clone();
+                let mut async_cx = cx.to_async();
+
+                // Foreground task to receive comments
+                foreground
+                    .spawn({
+                        let entity = entity.clone();
+                        async move {
+                            if let Some(new_comments) = rx.next().await {
+                                let _ = entity.update(&mut async_cx, |state, cx| {
+                                    state.comments.extend(new_comments);
+                                    state.loaded_comment_count += batch_size;
+                                    state.comments_loading = false;
+                                    cx.notify();
+                                });
+                            }
+                        }
+                    })
+                    .detach();
+
+                // Background task to fetch comments
+                background
+                    .spawn(async move {
+                        let mut comments = Vec::new();
+                        for id in comment_ids_to_fetch {
+                            match api_service.fetch_comment_content(id) {
+                                Ok(comment) => {
+                                    comments.push(comment);
+                                }
+                                Err(e) => {
+                                    tracing::warn!("Failed to fetch comment {}: {}", id, e);
+                                }
+                            }
+                        }
+                        let _ = tx.unbounded_send(comments);
+                    })
+                    .detach();
+            }
         }
         pub fn set_zoom_level(entity: Entity<Self>, zoom: u32, cx: &mut App) {
             entity.update(cx, |state, cx| {

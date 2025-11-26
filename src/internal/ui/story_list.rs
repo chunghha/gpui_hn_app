@@ -38,6 +38,8 @@ impl Render for StoryListView {
         let app_state = self.app_state.read(cx);
         let stories = app_state.stories.clone();
         let loading = app_state.loading;
+        let loading_more = app_state.loading_more;
+        let all_loaded = app_state.all_stories_loaded;
         let _ = app_state; // Release borrow
 
         let scroll_y = self.scroll_state.scroll_y;
@@ -59,14 +61,22 @@ impl Render for StoryListView {
                     let viewport_height: f32 = window.viewport_size().height.into();
 
                     if this.scroll_state.scroll_y > estimated_height - viewport_height - 200.0 {
-                        let entity = this.app_state.clone();
-                        let foreground = cx.foreground_executor().clone();
-                        let mut async_cx = cx.to_async();
-                        foreground
-                            .spawn(async move {
-                                AppState::fetch_more_stories(entity, &mut async_cx).await;
-                            })
-                            .detach();
+                        let app_state = this.app_state.read(cx);
+                        let should_load = !app_state.loading_more
+                            && !app_state.all_stories_loaded
+                            && !app_state.loading;
+                        let _ = app_state;
+
+                        if should_load {
+                            let entity = this.app_state.clone();
+                            let foreground = cx.foreground_executor().clone();
+                            let mut async_cx = cx.to_async();
+                            foreground
+                                .spawn(async move {
+                                    AppState::fetch_more_stories(entity, &mut async_cx).await;
+                                })
+                                .detach();
+                        }
                     }
 
                     cx.notify();
@@ -95,7 +105,40 @@ impl Render for StoryListView {
                             app_state_entity,
                         )
                     }))
-                    .when(loading, |this| this.child(div().p_4().child("Loading..."))),
+                    .when(loading && stories.is_empty(), |this| {
+                        this.child(
+                            div()
+                                .p_4()
+                                .flex()
+                                .justify_center()
+                                .text_color(colors.foreground)
+                                .child("Loading stories..."),
+                        )
+                    })
+                    .when(loading_more, |this| {
+                        this.child(
+                            div()
+                                .p_4()
+                                .flex()
+                                .justify_center()
+                                .text_sm()
+                                .font_weight(gpui::FontWeight::SEMIBOLD)
+                                .text_color(colors.foreground)
+                                .child("Loading more stories..."),
+                        )
+                    })
+                    .when(all_loaded && !stories.is_empty(), |this| {
+                        this.child(
+                            div()
+                                .p_4()
+                                .flex()
+                                .justify_center()
+                                .text_sm()
+                                .font_weight(gpui::FontWeight::SEMIBOLD)
+                                .text_color(colors.foreground)
+                                .child("• End of list - No more stories •"),
+                        )
+                    }),
             )
     }
 }
