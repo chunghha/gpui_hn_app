@@ -647,7 +647,7 @@ impl Render for HnLayout {
                     .size_full()
                     .overflow_hidden()
                     .on_scroll_wheel(cx.listener(
-                        |this, event: &gpui::ScrollWheelEvent, _window, cx| {
+                        |this, event: &gpui::ScrollWheelEvent, window, cx| {
                             let delta_pixels = event.delta.pixel_delta(gpui::px(1.0)).y;
                             let delta_y: f32 = delta_pixels.into();
                             this.list_scroll_state.scroll_by(-delta_y); // Inverted for natural Mac scrolling
@@ -655,7 +655,9 @@ impl Render for HnLayout {
                             // Check if we're near the bottom to load more stories
                             let estimated_height =
                                 (this.app_state.read(cx).stories.len() as f32) * 88.0;
-                            let viewport_height = 800.0; // Approximation
+
+                            // Use actual window height
+                            let viewport_height: f32 = window.viewport_size().height.into();
 
                             if this.list_scroll_state.scroll_y
                                 > estimated_height - viewport_height - 200.0

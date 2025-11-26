@@ -170,18 +170,4 @@ Place custom theme JSON files in the `./themes` directory. The app will watch fo
 
 The included Flexoki theme is from the [gpui-component repository](https://github.com/longbridge/gpui-component/blob/main/themes/flexoki.json).
 
-Known limitations / TODOs
 
-- The WebView theme injection feature (`webview_theme_injection`) is experimental and currently half-baked:
-  - It attempts to apply the app's colors to arbitrary web content, which can break third-party page layouts or miss complex site backgrounds.
-  - Unknown or complex site structures may not be themed correctly (margins, canvases, background images, or shadowed elements can remain unthemed).
-  - Because this modifies external pages, it should be used cautiously.
-
-Planned TODOs:
-- Add a domain whitelist so injection only runs on trusted/internal pages instead of all sites.
-- Improve selector scoping and background detection so we only inject when safe (detect non-transparent site roots, background images, or CSS variables).
-- Provide a runtime UI toggle to enable/disable `webview_theme_injection` and persist the setting to `config.ron`.
-- Add unit tests for the init-script generator and integration tests that validate injection behavior on known test pages.
-- Offer a non-invasive theming mode that sets CSS variables (instead of forcing `!important` rules) so sites and the app can degrade gracefully.
-
-Until these TODOs are implemented, treat `webview_theme_injection` as an experimental opt-in feature.
