@@ -85,11 +85,12 @@ impl Render for HnLayout {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let colors = cx.theme().colors;
         let app_state = self.app_state.read(cx);
-        let (current_list, view_mode, font_sans, font_serif) = (
+        let (current_list, view_mode, font_sans, font_serif, injection_mode) = (
             app_state.current_list,
             app_state.view_mode.clone(),
             app_state.config.font_sans.clone(),
             app_state.config.font_serif.clone(),
+            app_state.config.webview_theme_injection.clone(),
         );
         let loading = app_state.loading;
         let _ = app_state;
@@ -165,6 +166,7 @@ impl Render for HnLayout {
                             self.app_state.clone(),
                             &self.slider_state,
                             self.current_zoom_level,
+                            injection_mode,
                             colors,
                         ))
                 }

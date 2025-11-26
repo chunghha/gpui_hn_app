@@ -25,9 +25,10 @@ use gpui_component::theme::ThemeColor;
 ///
 /// This returns an `impl IntoElement` so it can be composed inline in layouts.
 pub fn render_webview_controls(
-    _app_state: Entity<AppState>,
+    app_state: Entity<AppState>,
     slider_state: &Entity<SliderState>,
     zoom_value: u32,
+    injection_mode: String,
     colors: ThemeColor,
 ) -> impl IntoElement {
     // Keep layout and styling consistent with previous inline implementation.
@@ -47,5 +48,40 @@ pub fn render_webview_controls(
                 .text_sm()
                 .text_color(colors.foreground)
                 .child(format!("{}%", zoom_value)),
+        )
+        .child(
+            div()
+                .id("theme-injection-toggle")
+                .flex()
+                .items_center()
+                .gap_1()
+                .cursor_pointer()
+                .on_click({
+                    let app_state = app_state.clone();
+                    let injection_mode = injection_mode.clone();
+                    move |_event, _window, cx| {
+                        let next_mode = match injection_mode.as_str() {
+                            "none" => "light",
+                            "light" => "dark",
+                            "dark" => "both",
+                            "both" => "none",
+                            _ => "none",
+                        };
+                        AppState::set_theme_injection(app_state.clone(), next_mode.to_string(), cx);
+                    }
+                })
+                .child(
+                    div()
+                        .text_sm()
+                        .text_color(colors.foreground)
+                        .child("Theme:"),
+                )
+                .child(
+                    div()
+                        .text_sm()
+                        .font_weight(gpui::FontWeight::BOLD)
+                        .text_color(colors.foreground)
+                        .child(injection_mode.to_uppercase()),
+                ),
         )
 }

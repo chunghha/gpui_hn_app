@@ -1,8 +1,9 @@
-use serde::Deserialize;
+use regex::RegexBuilder;
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct AppConfig {
     pub font_sans: String,
     pub font_serif: String,
@@ -120,5 +121,163 @@ impl AppConfig {
 
         tracing::info!("No config file found, using defaults");
         Self::default()
+    }
+
+    pub fn save(&self) {
+        self.save_to(PathBuf::from("config.ron"));
+    }
+
+    pub fn save_to(&self, path: PathBuf) {
+        // Try to read existing config to preserve comments
+        let existing_content = fs::read_to_string(&path).unwrap_or_default();
+
+        if existing_content.is_empty() {
+            // Fallback to standard serialization if file doesn't exist or is empty
+            let pretty = ron::ser::PrettyConfig::default()
+                .depth_limit(2)
+                .separate_tuple_members(true)
+                .enumerate_arrays(true);
+
+            match ron::ser::to_string_pretty(self, pretty) {
+                Ok(content) => {
+                    if let Err(e) = fs::write(&path, content) {
+                        tracing::error!("Failed to write config to {}: {}", path.display(), e);
+                    } else {
+                        tracing::info!("Saved config to {}", path.display());
+                    }
+                }
+                Err(e) => {
+                    tracing::error!("Failed to serialize config: {}", e);
+                }
+            }
+            return;
+        }
+
+        // Helper to replace value in RON content
+        // Matches `key: value` or `key: "value"`
+        let mut new_content = existing_content.clone();
+
+        let replace_str = |content: &mut String, key: &str, value: &str| {
+            let re = RegexBuilder::new(&format!(r#"(\s*{}\s*:\s*)"[^"]*""#, regex::escape(key)))
+                .build()
+                .unwrap();
+            *content = re
+                .replace_all(content, format!(r#"${{1}}"{}""#, value))
+                .to_string();
+        };
+
+        let replace_val = |content: &mut String, key: &str, value: String| {
+            let re = RegexBuilder::new(&format!(r#"(\s*{}\s*:\s*)[^,\s)]+"#, regex::escape(key)))
+                .build()
+                .unwrap();
+            *content = re
+                .replace_all(content, format!(r#"${{1}}{}"#, value))
+                .to_string();
+        };
+
+        replace_str(&mut new_content, "font_sans", &self.font_sans);
+        replace_str(&mut new_content, "font_serif", &self.font_serif);
+        replace_str(&mut new_content, "font_mono", &self.font_mono);
+        replace_str(&mut new_content, "theme_name", &self.theme_name);
+        replace_str(&mut new_content, "theme_file", &self.theme_file);
+        replace_val(
+            &mut new_content,
+            "webview_zoom",
+            self.webview_zoom.to_string(),
+        );
+        replace_str(
+            &mut new_content,
+            "webview_theme_injection",
+            &self.webview_theme_injection,
+        );
+        replace_val(
+            &mut new_content,
+            "soft_wrap_max_run",
+            self.soft_wrap_max_run.to_string(),
+        );
+        // Floating point numbers might need specific formatting, but to_string() is usually fine for RON
+        replace_val(
+            &mut new_content,
+            "window_width",
+            format!("{:.1}", self.window_width),
+        );
+        replace_val(
+            &mut new_content,
+            "window_height",
+            format!("{:.1}", self.window_height),
+        );
+
+        if let Err(e) = fs::write(&path, new_content) {
+            tracing::error!("Failed to update config at {}: {}", path.display(), e);
+        } else {
+            tracing::info!("Updated config at {} (preserving comments)", path.display());
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+
+    #[test]
+    fn test_save_preserves_comments() {
+        use std::io::Write;
+
+        // Create a temporary config file with comments
+        let temp_dir = std::env::temp_dir();
+        let config_path = temp_dir.join("config_test_comments.ron");
+
+        let initial_content = r#"(
+    // This is a comment about fonts
+    font_sans: "Test Sans",
+    font_serif: "Test Serif",
+    font_mono: "Test Mono",
+
+    // Theme settings
+    theme_name: "Old Theme",
+    theme_file: "./themes",
+
+    // Zoom level
+    webview_zoom: 100,
+
+    // Injection mode
+    webview_theme_injection: "none",
+
+    soft_wrap_max_run: 20,
+    window_width: 800.0,
+    window_height: 600.0,
+)"#;
+
+        {
+            let mut file = fs::File::create(&config_path).unwrap();
+            file.write_all(initial_content.as_bytes()).unwrap();
+        }
+
+        // Load config manually (since load() logic is complex with paths)
+        let mut config: AppConfig = ron::from_str(initial_content).unwrap();
+
+        // Modify values
+        config.webview_theme_injection = "both".to_string();
+        config.webview_zoom = 150;
+
+        // Save to the temp path
+        config.save_to(config_path.clone());
+
+        // Read back
+        let new_content = fs::read_to_string(&config_path).unwrap();
+
+        // Verify values updated
+        assert!(new_content.contains("webview_theme_injection: \"both\""));
+        assert!(new_content.contains("webview_zoom: 150"));
+
+        // Verify comments preserved
+        assert!(new_content.contains("// This is a comment about fonts"));
+        assert!(new_content.contains("// Theme settings"));
+        assert!(new_content.contains("// Zoom level"));
+        assert!(new_content.contains("// Injection mode"));
+
+        // Cleanup
+        let _ = fs::remove_file(config_path);
     }
 }

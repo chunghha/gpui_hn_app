@@ -440,6 +440,14 @@ mod imp {
                 cx.notify();
             });
         }
+
+        pub fn set_theme_injection(entity: Entity<Self>, mode: String, cx: &mut App) {
+            entity.update(cx, |state, cx| {
+                state.config.webview_theme_injection = mode;
+                state.config.save();
+                cx.notify();
+            });
+        }
     }
 }
 
