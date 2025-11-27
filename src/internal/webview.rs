@@ -50,31 +50,68 @@ pub fn make_init_script(
     };
 
     // Build the JS snippet that conditionally injects a scoped stylesheet.
-    // We scope the CSS to a small set of common content selectors and also set
-    // the `html` background to cover padding/margin regions.
+    // This version detects existing backgrounds and only applies theme when appropriate.
     let style_block = if inject_theme {
-        // Keep the block as a JS fragment that uses the already-JSON-encoded values.
+        // Enhanced injection with background detection
         r#"
+                // Helper function to check if a color is transparent
+                function isTransparent(color) {
+                    if (!color || color === 'transparent') return true;
+                    if (color === 'rgba(0, 0, 0, 0)') return true;
+                    if (color.startsWith('rgba')) {
+                        // Check if alpha channel is 0
+                        var match = color.match(/rgba?\([^)]+,\s*([0-9.]+)\)/);
+                        return match && parseFloat(match[1]) === 0;
+                    }
+                    return false;
+                }
+
                 var style = document.createElement('style');
                 style.setAttribute('data-gpui-theme', '1');
-                style.textContent =
-                    // Apply theme background to the page root so margin/padding areas are covered
-                    'html {' +
-                    '    background-color: ' + bgColor + ' !important;' +
-                    '    min-height: 100%;' +
-                    '}' +
-                    // Keep body transparent so html background is visible in padding areas
-                    'body {' +
-                    '    background-color: transparent !important;' +
-                    '}' +
-                    // Scoped styling for typical article/content containers for contrast
-                    'main, article, .content, .post, .post-content, #content {' +
-                    '    background-color: ' + bgColor + ' !important;' +
-                    '    color: ' + fgColor + ' !important;' +
-                    '}' +
-                    'a, a:link, a:visited {' +
-                    '    color: ' + linkColor + ' !important;' +
-                    '}' ;
+                var css = '';
+
+                // Check if html element has a background image
+                var htmlStyle = getComputedStyle(document.documentElement);
+                var htmlBgImage = htmlStyle.backgroundImage;
+                var htmlBgColor = htmlStyle.backgroundColor;
+
+                // Only apply to html if it has no background image
+                if (!htmlBgImage || htmlBgImage === 'none') {
+                    css += 'html { background-color: ' + bgColor + ' !important; min-height: 100%; }';
+                }
+
+                // Check body background
+                if (document.body) {
+                    var bodyStyle = getComputedStyle(document.body);
+                    var bodyBgImage = bodyStyle.backgroundImage;
+                    var bodyBgColor = bodyStyle.backgroundColor;
+
+                    // Only apply to body if it has no background image and is transparent
+                    if ((!bodyBgImage || bodyBgImage === 'none') && isTransparent(bodyBgColor)) {
+                        css += 'body { background-color: transparent !important; }';
+                    }
+                }
+
+                // Apply to content containers using :not() selectors to avoid overriding
+                // elements with inline styles, background classes, or existing background images
+                css += 
+                    'main:not([style*="background"]):not([class*="bg-"]), ' +
+                    'article:not([style*="background"]):not([class*="bg-"]), ' +
+                    '.content:not([style*="background"]):not([class*="bg-"]), ' +
+                    '.post:not([style*="background"]):not([class*="bg-"]), ' +
+                    '.post-content:not([style*="background"]):not([class*="bg-"]), ' +
+                    '#content:not([style*="background"]):not([class*="bg-"]) { ' +
+                    '    background-color: ' + bgColor + ' !important; ' +
+                    '    color: ' + fgColor + ' !important; ' +
+                    '}';
+
+                // Apply link colors with more specificity
+                css += 
+                    'a, a:link, a:visited { ' +
+                    '    color: ' + linkColor + ' !important; ' +
+                    '}';
+
+                style.textContent = css;
                 document.head.appendChild(style);
         "#
         .to_string()
@@ -257,7 +294,9 @@ mod tests {
         // Verify CSS selectors are included when theme injection is enabled
         assert!(script.contains("html {"));
         assert!(script.contains("body {"));
-        assert!(script.contains("main, article, .content, .post, .post-content, #content {"));
+        // Check for enhanced selectors with :not() clauses
+        assert!(script.contains("main:not([style*=\"background\"]):not([class*=\"bg-\"])"));
+        assert!(script.contains("article:not([style*=\"background\"]):not([class*=\"bg-\"])"));
         assert!(script.contains("a, a:link, a:visited {"));
     }
 
@@ -295,5 +334,42 @@ mod tests {
         let script_mixed =
             make_init_script(&config_mixed, true, "#000000", "#FFFFFF", "#0000FF", 120);
         assert!(script_mixed.contains("createElement('style')"));
+    }
+
+    #[test]
+    fn test_background_image_detection() {
+        let config = mock_config("both");
+        let script = make_init_script(&config, true, "#000000", "#FFFFFF", "#0000FF", 120);
+
+        // Verify background image detection is included
+        assert!(script.contains("getComputedStyle(document.documentElement)"));
+        assert!(script.contains("htmlBgImage"));
+        assert!(script.contains("bodyBgImage"));
+        assert!(script.contains("htmlBgImage === 'none'"));
+    }
+
+    #[test]
+    fn test_transparency_detection_helper() {
+        let config = mock_config("both");
+        let script = make_init_script(&config, true, "#000000", "#FFFFFF", "#0000FF", 120);
+
+        // Verify isTransparent helper function is included
+        assert!(script.contains("function isTransparent(color)"));
+        assert!(script.contains("color === 'transparent'"));
+        assert!(script.contains("rgba(0, 0, 0, 0)"));
+    }
+
+    #[test]
+    fn test_selective_selector_targeting() {
+        let config = mock_config("both");
+        let script = make_init_script(&config, true, "#000000", "#FFFFFF", "#0000FF", 120);
+
+        // Verify :not() selectors are used to avoid overriding existing styles
+        assert!(script.contains(":not([style*=\"background\"])"));
+        assert!(script.contains(":not([class*=\"bg-\"])"));
+
+        // Check that content selectors use the selective targeting
+        assert!(script.contains(".content:not([style*=\"background\"]):not([class*=\"bg-\"])"));
+        assert!(script.contains(".post:not([style*=\"background\"]):not([class*=\"bg-\"])"));
     }
 }
