@@ -27,6 +27,9 @@ pub struct AppConfig {
     /// - "both": inject for both themes
     #[serde(default = "default_webview_theme_injection")]
     pub webview_theme_injection: String,
+    /// How to apply theme injection: "invasive" (uses !important) or "css-vars" (sets CSS variables)
+    #[serde(default = "default_webview_theme_mode")]
+    pub webview_theme_mode: String,
     /// Maximum run length before inserting soft-wrap break characters.
     /// Set to 0 to disable the soft-wrap insertion behavior.
     #[serde(default = "default_soft_wrap_max_run")]
@@ -47,6 +50,11 @@ fn default_webview_theme_injection() -> String {
 
 fn default_webview_zoom() -> u32 {
     120
+}
+
+fn default_webview_theme_mode() -> String {
+    // Default to invasive mode to preserve current behavior
+    "invasive".to_string()
 }
 
 /// Default maximum run length before inserting soft-wrap characters.
@@ -81,6 +89,7 @@ impl Default for AppConfig {
             theme_file: default_theme_file(),
             webview_zoom: 120,
             webview_theme_injection: default_webview_theme_injection(),
+            webview_theme_mode: default_webview_theme_mode(),
             soft_wrap_max_run: default_soft_wrap_max_run(),
             window_width: 980.0,
             window_height: 720.0,
@@ -189,6 +198,11 @@ impl AppConfig {
             &mut new_content,
             "webview_theme_injection",
             &self.webview_theme_injection,
+        );
+        replace_str(
+            &mut new_content,
+            "webview_theme_mode",
+            &self.webview_theme_mode,
         );
         replace_val(
             &mut new_content,

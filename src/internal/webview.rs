@@ -49,11 +49,51 @@ pub fn make_init_script(
         }
     };
 
+    // Determine theming mode: invasive (!important) or non-invasive (CSS vars)
+    let use_css_vars = config.webview_theme_mode.to_lowercase() == "css-vars";
+
     // Build the JS snippet that conditionally injects a scoped stylesheet.
-    // This version detects existing backgrounds and only applies theme when appropriate.
     let style_block = if inject_theme {
-        // Enhanced injection with background detection
-        r#"
+        if use_css_vars {
+            // Non-invasive CSS variable mode - sets custom properties without forcing
+            r#"
+                var style = document.createElement('style');
+                style.setAttribute('data-gpui-theme', 'css-vars');
+                var css = '';
+
+                // Set CSS custom properties on :root that sites can optionally use
+                css += ':root {' +
+                    '--gpui-bg-color: ' + bgColor + ';' +
+                    '--gpui-fg-color: ' + fgColor + ';' +
+                    '--gpui-link-color: ' + linkColor + ';' +
+                '}';
+
+                // Gentle application without !important - respects existing site styles
+                css += 'body:not([style*="background"]) {' +
+                    'background-color: var(--gpui-bg-color);' +
+                    'color: var(--gpui-fg-color);' +
+                '}';
+
+                css += 'a:not([style*="color"]) {' +
+                    'color: var(--gpui-link-color);' +
+                '}';
+
+                // Content containers can also optionally pick up the variables
+                css += 
+                    'main:not([style*="background"]), ' +
+                    'article:not([style*="background"]), ' +
+                    '.content:not([style*="background"]) {' +
+                    'background-color: var(--gpui-bg-color);' +
+                    'color: var(--gpui-fg-color);' +
+                '}';
+
+                style.textContent = css;
+                document.head.appendChild(style);
+            "#
+            .to_string()
+        } else {
+            // Invasive mode - uses !important with background detection (current enhanced behavior)
+            r#"
                 // Helper function to check if a color is transparent
                 function isTransparent(color) {
                     if (!color || color === 'transparent') return true;
@@ -67,7 +107,7 @@ pub fn make_init_script(
                 }
 
                 var style = document.createElement('style');
-                style.setAttribute('data-gpui-theme', '1');
+                style.setAttribute('data-gpui-theme', 'invasive');
                 var css = '';
 
                 // Check if html element has a background image
@@ -113,8 +153,9 @@ pub fn make_init_script(
 
                 style.textContent = css;
                 document.head.appendChild(style);
-        "#
-        .to_string()
+            "#
+            .to_string()
+        }
     } else {
         String::new()
     };
@@ -173,6 +214,7 @@ mod tests {
             theme_file: "./themes".to_string(),
             webview_zoom: 120,
             webview_theme_injection: theme_injection.to_string(),
+            webview_theme_mode: "invasive".to_string(),
             soft_wrap_max_run: 20,
             window_width: 980.0,
             window_height: 720.0,
@@ -371,5 +413,75 @@ mod tests {
         // Check that content selectors use the selective targeting
         assert!(script.contains(".content:not([style*=\"background\"]):not([class*=\"bg-\"])"));
         assert!(script.contains(".post:not([style*=\"background\"]):not([class*=\"bg-\"])"));
+    }
+
+    #[test]
+    fn test_css_vars_mode() {
+        let mut config = mock_config("both");
+        config.webview_theme_mode = "css-vars".to_string();
+        let script = make_init_script(&config, true, "#000000", "#FFFFFF", "#0000FF", 120);
+
+        // Verify CSS variables are set
+        assert!(script.contains("'data-gpui-theme', 'css-vars'"));
+        assert!(script.contains(":root {"));
+        assert!(script.contains("--gpui-bg-color:"));
+        assert!(script.contains("--gpui-fg-color:"));
+        assert!(script.contains("--gpui-link-color:"));
+    }
+
+    #[test]
+    fn test_invasive_mode_default() {
+        let config = mock_config("both");
+        let script = make_init_script(&config, true, "#000000", "#FFFFFF", "#0000FF", 120);
+
+        // Verify invasive mode is used by default
+        assert!(script.contains("'data-gpui-theme', 'invasive'"));
+        assert!(script.contains("!important"));
+    }
+
+    #[test]
+    fn test_css_vars_no_important() {
+        let mut config = mock_config("both");
+        config.webview_theme_mode = "css-vars".to_string();
+        let script = make_init_script(&config, true, "#000000", "#FFFFFF", "#0000FF", 120);
+
+        // Verify CSS vars mode does NOT use !important for theme colors
+        assert!(!script.contains("background-color:' + bgColor + ' !important"));
+        assert!(!script.contains("color:' + fgColor + ' !important"));
+    }
+
+    #[test]
+    fn test_css_vars_root_selector() {
+        let mut config = mock_config("both");
+        config.webview_theme_mode = "css-vars".to_string();
+        let script = make_init_script(&config, true, "#000000", "#FFFFFF", "#0000FF", 120);
+
+        // Verify :root selector is used for CSS variables
+        assert!(script.contains(":root {"));
+        assert!(script.contains("var(--gpui-bg-color)"));
+        assert!(script.contains("var(--gpui-fg-color)"));
+        assert!(script.contains("var(--gpui-link-color)"));
+    }
+
+    #[test]
+    fn test_css_vars_respects_injection_mode() {
+        let mut config = mock_config("none");
+        config.webview_theme_mode = "css-vars".to_string();
+        let script = make_init_script(&config, true, "#000000", "#FFFFFF", "#0000FF", 120);
+
+        // If injection is "none", CSS vars should not be injected either
+        assert!(!script.contains(":root"));
+        assert!(!script.contains("--gpui-bg-color"));
+    }
+
+    #[test]
+    fn test_css_vars_case_insensitive() {
+        let mut config = mock_config("both");
+        config.webview_theme_mode = "CSS-VARS".to_string();
+        let script = make_init_script(&config, true, "#000000", "#FFFFFF", "#0000FF", 120);
+
+        // Verify mode detection is case-insensitive
+        assert!(script.contains("'data-gpui-theme', 'css-vars'"));
+        assert!(script.contains(":root {"));
     }
 }

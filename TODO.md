@@ -7,7 +7,7 @@
     - [ ] Add a domain whitelist so injection only runs on trusted/internal pages.
     - [x] Improve selector scoping and background detection (detect non-transparent site roots, background images).
     - [x] Provide a runtime UI toggle to enable/disable `webview_theme_injection` and persist to `config.ron`.
-    - [ ] Offer a non-invasive theming mode that sets CSS variables instead of forcing `!important`.
+    - [x] Offer a non-invasive theming mode that sets CSS variables instead of forcing `!important`.
 - [ ] **State Management**
     - [ ] Improve `hide_webview` to remember and restore the previous view state (e.g., return to specific story detail).
 

@@ -25,6 +25,11 @@
     // - "both": inject for both light and dark themes (default)
     webview_theme_injection: "none",
 
+    // How to apply theme injection: \"invasive\" or \"css-vars\"
+    // - \"invasive\": uses !important to force theme colors (default, more aggressive)
+    // - \"css-vars\": sets CSS variables without forcing (more respectful of site designs)
+    webview_theme_mode: "invasive",
+
     // Maximum run length before inserting soft-wrap break characters into text.
     // Set to 0 to disable soft-wrapping entirely.
     soft_wrap_max_run: 20,

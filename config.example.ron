@@ -24,6 +24,11 @@
     // - "both": inject for both light and dark themes (default)
     webview_theme_injection: "none",
 
+    // How to apply theme injection: \"invasive\" or \"css-vars\"
+    // - \"invasive\": uses !important to force theme colors (default, more aggressive)
+    // - \"css-vars\": sets CSS variables without forcing (more respectful of site designs)
+    webview_theme_mode: "invasive",
+
     // WebView zoom level as a percentage (e.g., 100 = normal, 120 = 20% larger)
     webview_zoom: 120,
 
