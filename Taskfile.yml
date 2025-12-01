@@ -15,6 +15,9 @@ tasks:
   test:
     cmds:
       - cargo test
+  bench:
+    cmds:
+      - cargo bench
   loc:
     cmds:
       - tokei . --exclude vendor
@@ -23,9 +26,13 @@ tasks:
     cmds:
       - target/release/$PGM_NAME
   run:debug:
+    cmds:
+      - cargo build
+      - RUST_LOG=debug target/debug/$PGM_NAME
+  install:
     deps: [build]
     cmds:
-      - FREYA_DEBUG=1 target/release/$PGM_NAME
+      - cp target/release/$PGM_NAME ~/bin/$PGM_NAME
   typo:
     cmds:
       - typos src/**/*.rs

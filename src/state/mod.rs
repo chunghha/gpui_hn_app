@@ -1,5 +1,7 @@
 mod imp {
     use crate::api::{ApiService, StoryListType};
+    use crate::bookmarks::Bookmarks;
+    use crate::history::History;
     use crate::internal::models::{Comment, Story};
     use crate::utils::html::extract_text_from_html;
     use futures::StreamExt;
@@ -7,11 +9,13 @@ mod imp {
     use gpui::{App, Entity, prelude::*};
     use std::sync::Arc;
 
-    #[derive(Clone, PartialEq)]
+    #[derive(Clone, PartialEq, Debug)]
     pub enum ViewMode {
         List,
         Story(Story),
         Webview(String),
+        Bookmarks,
+        History,
     }
 
     pub struct AppState {
@@ -31,11 +35,16 @@ mod imp {
         pub config: crate::config::AppConfig,
         pub story_ids: Vec<u32>,
         pub loaded_count: usize,
+        pub bookmarks: Bookmarks,
+        pub history: History,
     }
 
     impl AppState {
         pub fn new(config: crate::config::AppConfig, cx: &mut App) -> Entity<Self> {
             let api_service = Arc::new(ApiService::new());
+            let bookmarks = Bookmarks::load();
+            let history = History::load();
+
             cx.new(|_cx| Self {
                 stories: Vec::new(),
                 loading: false,
@@ -53,6 +62,8 @@ mod imp {
                 config,
                 story_ids: Vec::new(),
                 loaded_count: 0,
+                bookmarks,
+                history,
             })
         }
 
@@ -198,6 +209,9 @@ mod imp {
             // Set initial selection & mark content loading
             entity.update(cx, |state, cx| {
                 if let Some(story) = state.stories.iter().find(|s| s.id == story_id).cloned() {
+                    // Add to history when selecting a story
+                    state.history.add(&story);
+                    state.history.save();
                     state.view_mode = ViewMode::Story(story);
                 }
                 state.selected_story_content = None;
@@ -223,49 +237,52 @@ mod imp {
             // Trigger comment fetching for the selected story
             Self::fetch_comments(entity.clone(), story.clone(), cx);
 
-            if let Some(url) = story.url.clone() {
-                let (tx, mut rx) = mpsc::unbounded::<String>();
-                let background = cx.background_executor().clone();
-                let foreground = cx.foreground_executor().clone();
-                let mut async_cx = cx.to_async();
+            match story.url.clone() {
+                Some(url) => {
+                    let (tx, mut rx) = mpsc::unbounded::<String>();
+                    let background = cx.background_executor().clone();
+                    let foreground = cx.foreground_executor().clone();
+                    let mut async_cx = cx.to_async();
 
-                // Foreground receiver updates state when content arrives
-                foreground
-                    .spawn({
-                        let entity_fg = entity.clone();
-                        async move {
-                            if let Some(content) = rx.next().await {
-                                let _ = entity_fg.update(&mut async_cx, |state, cx| {
-                                    if let ViewMode::Story(sel) = &state.view_mode
-                                        && sel.id == story.id
-                                    {
-                                        state.selected_story_content = Some(content);
-                                        state.selected_story_content_loading = false;
-                                        cx.notify();
-                                    }
-                                });
+                    // Foreground receiver updates state when content arrives
+                    foreground
+                        .spawn({
+                            let entity_fg = entity.clone();
+                            async move {
+                                if let Some(content) = rx.next().await {
+                                    let _ = entity_fg.update(&mut async_cx, |state, cx| {
+                                        if let ViewMode::Story(sel) = &state.view_mode
+                                            && sel.id == story.id
+                                        {
+                                            state.selected_story_content = Some(content);
+                                            state.selected_story_content_loading = false;
+                                            cx.notify();
+                                        }
+                                    });
+                                }
                             }
-                        }
-                    })
-                    .detach();
+                        })
+                        .detach();
 
-                // Background fetch
-                background
-                    .spawn(async move {
-                        let fetched = reqwest::blocking::get(&url)
-                            .and_then(|resp| resp.text())
-                            .unwrap_or_default();
-                        let text = extract_text_from_html(&fetched);
-                        let _ = tx.unbounded_send(text);
-                    })
-                    .detach();
-            } else {
-                // No URL; mark as not loading with placeholder
-                entity.update(cx, |state, cx| {
-                    state.selected_story_content_loading = false;
-                    state.selected_story_content = Some("(No URL for this story)".to_string());
-                    cx.notify();
-                });
+                    // Background fetch
+                    background
+                        .spawn(async move {
+                            let fetched = reqwest::blocking::get(&url)
+                                .and_then(|resp| resp.text())
+                                .unwrap_or_default();
+                            let text = extract_text_from_html(&fetched);
+                            let _ = tx.unbounded_send(text);
+                        })
+                        .detach();
+                }
+                None => {
+                    // No URL; mark as not loading with placeholder
+                    entity.update(cx, |state, cx| {
+                        state.selected_story_content_loading = false;
+                        state.selected_story_content = Some("(No URL for this story)".to_string());
+                        cx.notify();
+                    });
+                }
             }
         }
 
@@ -445,6 +462,76 @@ mod imp {
             entity.update(cx, |state, cx| {
                 state.config.webview_theme_injection = mode;
                 state.config.save();
+                cx.notify();
+            });
+        }
+
+        /// Toggle bookmark for the current story
+        pub fn toggle_bookmark(entity: Entity<Self>, cx: &mut App) {
+            entity.update(cx, |state, cx| {
+                if let ViewMode::Story(story) = &state.view_mode {
+                    state.bookmarks.toggle(story);
+                    state.bookmarks.save();
+                    cx.notify();
+                }
+            });
+        }
+
+        /// Toggle bookmark by story data (for context menus)
+        pub fn toggle_bookmark_by_data(
+            entity: Entity<Self>,
+            id: u32,
+            title: Option<String>,
+            url: Option<String>,
+            cx: &mut App,
+        ) {
+            entity.update(cx, |state, cx| {
+                // Create a minimal Story object for bookmarking
+                let story = Story {
+                    id,
+                    title,
+                    url,
+                    by: None,
+                    time: None,
+                    score: None,
+                    descendants: None,
+                    kids: None,
+                };
+                state.bookmarks.toggle(&story);
+                state.bookmarks.save();
+                cx.notify();
+            });
+        }
+
+        /// Switch to Bookmarks view
+        pub fn show_bookmarks(entity: Entity<Self>, cx: &mut App) {
+            entity.update(cx, |state, cx| {
+                state.view_mode = ViewMode::Bookmarks;
+                cx.notify();
+            });
+        }
+
+        /// Switch to History view
+        pub fn show_history(entity: Entity<Self>, cx: &mut App) {
+            entity.update(cx, |state, cx| {
+                state.view_mode = ViewMode::History;
+                cx.notify();
+            });
+        }
+
+        /// Switch to Stories view
+        pub fn show_stories(entity: Entity<Self>, cx: &mut App) {
+            entity.update(cx, |state, cx| {
+                state.view_mode = ViewMode::List;
+                cx.notify();
+            });
+        }
+
+        /// Clear history
+        pub fn clear_history(entity: Entity<Self>, cx: &mut App) {
+            entity.update(cx, |state, cx| {
+                state.history.clear();
+                state.history.save();
                 cx.notify();
             });
         }

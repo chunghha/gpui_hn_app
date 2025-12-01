@@ -50,10 +50,10 @@ pub fn toggle_dark_light(theme_name: &str, runtime_is_dark: Option<bool>) -> Str
     }
 
     // No standalone token found; append based on runtime hint.
-    if runtime_is_dark.unwrap_or(false) {
-        format!("{} Light", theme_name)
-    } else {
-        format!("{} Dark", theme_name)
+    // No standalone token found; append based on runtime hint.
+    match runtime_is_dark.unwrap_or(false) {
+        true => format!("{} Light", theme_name),
+        false => format!("{} Dark", theme_name),
     }
 }
 
@@ -72,20 +72,24 @@ fn replace_first_standalone_token(s: &str, token: &str, replacement: &str) -> Op
         let end = abs + token_lower.len();
 
         // Check boundary before token
-        let before_ok = if abs == 0 {
-            true
-        } else {
-            // Safe to use byte slicing for ASCII token boundaries
-            let prev_char = s[..abs].chars().next_back().unwrap_or(' ');
-            !prev_char.is_alphabetic()
+        // Check boundary before token
+        let before_ok = match abs == 0 {
+            true => true,
+            false => {
+                // Safe to use byte slicing for ASCII token boundaries
+                let prev_char = s[..abs].chars().next_back().unwrap_or(' ');
+                !prev_char.is_alphabetic()
+            }
         };
 
         // Check boundary after token
-        let after_ok = if end == s.len() {
-            true
-        } else {
-            let next_char = s[end..].chars().next().unwrap_or(' ');
-            !next_char.is_alphabetic()
+        // Check boundary after token
+        let after_ok = match end == s.len() {
+            true => true,
+            false => {
+                let next_char = s[end..].chars().next().unwrap_or(' ');
+                !next_char.is_alphabetic()
+            }
         };
 
         if before_ok && after_ok {
@@ -122,21 +126,17 @@ fn preserve_casing(orig: &str, replacement: &str) -> String {
     let all_lower = alphabetic_chars.iter().all(|c| c.is_lowercase());
     let first_upper_rest_lower = {
         let mut it = alphabetic_chars.iter();
-        if let Some(first) = it.next() {
-            first.is_uppercase() && it.all(|c| c.is_lowercase())
-        } else {
-            false
+        match it.next() {
+            Some(first) => first.is_uppercase() && it.all(|c| c.is_lowercase()),
+            None => false,
         }
     };
 
-    if all_upper {
-        replacement.to_uppercase()
-    } else if all_lower {
-        replacement.to_lowercase()
-    } else if first_upper_rest_lower {
-        capitalize_ascii_like(replacement)
-    } else {
-        replacement.to_string()
+    match (all_upper, all_lower, first_upper_rest_lower) {
+        (true, _, _) => replacement.to_uppercase(),
+        (_, true, _) => replacement.to_lowercase(),
+        (_, _, true) => capitalize_ascii_like(replacement),
+        _ => replacement.to_string(),
     }
 }
 

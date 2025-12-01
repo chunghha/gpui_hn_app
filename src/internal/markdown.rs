@@ -210,10 +210,9 @@ fn collect_inline_parts<'a>(
         NodeValue::Link(link) => {
             let url = link.url.clone();
             let text = collect_text(node);
-            let display = if text.trim().is_empty() {
-                soft_wrap(&url, config.soft_wrap_max_run)
-            } else {
-                soft_wrap(&text, config.soft_wrap_max_run)
+            let display = match text.trim().is_empty() {
+                true => soft_wrap(&url, config.soft_wrap_max_run),
+                false => soft_wrap(&text, config.soft_wrap_max_run),
             };
 
             for word in split_into_words(&display) {
@@ -275,18 +274,19 @@ pub fn soft_wrap(s: &str, max_run: usize) -> String {
 
     for ch in s.chars() {
         out.push(ch);
-        if ch.is_whitespace() {
-            run = 0;
-        } else {
-            run += 1;
-            if run >= max_run {
-                // insert a zero-width space and a soft-hyphen to offer
-                // multiple breakpoints. Order matters: ZWSP allows
-                // a clean break without visible characters; soft-hyphen
-                // is a fallback that shows a hyphen where a break occurs.
-                out.push('\u{200B}');
-                out.push('\u{00AD}');
-                run = 0;
+        match ch.is_whitespace() {
+            true => run = 0,
+            false => {
+                run += 1;
+                if run >= max_run {
+                    // insert a zero-width space and a soft-hyphen to offer
+                    // multiple breakpoints. Order matters: ZWSP allows
+                    // a clean break without visible characters; soft-hyphen
+                    // is a fallback that shows a hyphen where a break occurs.
+                    out.push('\u{200B}');
+                    out.push('\u{00AD}');
+                    run = 0;
+                }
             }
         }
     }

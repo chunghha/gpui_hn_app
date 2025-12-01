@@ -30,7 +30,10 @@ pub fn make_init_script(
     // Prepare values and JSON-encode them so they're safe to interpolate into JS.
     let zoom_str = format!("{}%", zoom_level);
     let zoom_js = serde_json::to_string(&zoom_str).unwrap_or_else(|_| "\"100%\"".to_string());
-    let is_dark_js = if is_dark_theme { "true" } else { "false" };
+    let is_dark_js = match is_dark_theme {
+        true => "true",
+        false => "false",
+    };
     let bg_js = serde_json::to_string(&bg_color).unwrap_or_else(|_| "\"#000000\"".to_string());
     let fg_js = serde_json::to_string(&fg_color).unwrap_or_else(|_| "\"#000000\"".to_string());
     let link_js = serde_json::to_string(&link_color).unwrap_or_else(|_| "\"#0000FF\"".to_string());
@@ -53,10 +56,11 @@ pub fn make_init_script(
     let use_css_vars = config.webview_theme_mode.to_lowercase() == "css-vars";
 
     // Build the JS snippet that conditionally injects a scoped stylesheet.
-    let style_block = if inject_theme {
-        if use_css_vars {
-            // Non-invasive CSS variable mode - sets custom properties without forcing
-            r#"
+    let style_block = match inject_theme {
+        true => match use_css_vars {
+            true => {
+                // Non-invasive CSS variable mode - sets custom properties without forcing
+                r#"
                 var style = document.createElement('style');
                 style.setAttribute('data-gpui-theme', 'css-vars');
                 var css = '';
@@ -76,6 +80,7 @@ pub fn make_init_script(
 
                 css += 'a:not([style*="color"]) {' +
                     'color: var(--gpui-link-color);' +
+                    '}' +
                 '}';
 
                 // Content containers can also optionally pick up the variables
@@ -90,10 +95,11 @@ pub fn make_init_script(
                 style.textContent = css;
                 document.head.appendChild(style);
             "#
-            .to_string()
-        } else {
-            // Invasive mode - uses !important with background detection (current enhanced behavior)
-            r#"
+                .to_string()
+            }
+            false => {
+                // Invasive mode - uses !important with background detection (current enhanced behavior)
+                r#"
                 // Helper function to check if a color is transparent
                 function isTransparent(color) {
                     if (!color || color === 'transparent') return true;
@@ -154,10 +160,10 @@ pub fn make_init_script(
                 style.textContent = css;
                 document.head.appendChild(style);
             "#
-            .to_string()
-        }
-    } else {
-        String::new()
+                .to_string()
+            }
+        },
+        false => String::new(),
     };
 
     // Construct the final initialization script. It always applies zoom. The style_block

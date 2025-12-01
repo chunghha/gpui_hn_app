@@ -1,5 +1,8 @@
 use crate::api::StoryListType;
-use crate::internal::ui::{StoryDetailView, StoryListView, render_header, render_webview_controls};
+use crate::internal::ui::{
+    BookmarkListView, HistoryListView, StoryDetailView, StoryListView, render_header,
+    render_webview_controls,
+};
 use crate::state::{AppState, ViewMode};
 use gpui::{prelude::*, *};
 use gpui_component::ActiveTheme;
@@ -17,6 +20,8 @@ pub struct HnLayout {
     focus_handle: FocusHandle,
     story_list_view: Entity<StoryListView>,
     story_detail_view: Entity<StoryDetailView>,
+    bookmark_list_view: Entity<BookmarkListView>,
+    history_list_view: Entity<HistoryListView>,
 }
 
 impl HnLayout {
@@ -24,6 +29,8 @@ impl HnLayout {
         app_state: Entity<AppState>,
         story_list_view: Entity<StoryListView>,
         story_detail_view: Entity<StoryDetailView>,
+        bookmark_list_view: Entity<BookmarkListView>,
+        history_list_view: Entity<HistoryListView>,
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> Self {
@@ -59,6 +66,7 @@ impl HnLayout {
         .detach();
 
         let focus_handle = cx.focus_handle();
+        window.focus(&focus_handle);
 
         Self {
             title: "Hacker News".into(),
@@ -70,6 +78,8 @@ impl HnLayout {
             focus_handle,
             story_list_view,
             story_detail_view,
+            bookmark_list_view,
+            history_list_view,
         }
     }
     pub fn story_list_view(&self) -> Entity<StoryListView> {
@@ -78,6 +88,14 @@ impl HnLayout {
 
     pub fn story_detail_view(&self) -> Entity<StoryDetailView> {
         self.story_detail_view.clone()
+    }
+
+    pub fn bookmark_list_view(&self) -> Entity<BookmarkListView> {
+        self.bookmark_list_view.clone()
+    }
+
+    pub fn history_list_view(&self) -> Entity<HistoryListView> {
+        self.history_list_view.clone()
     }
 }
 
@@ -96,25 +114,29 @@ impl Render for HnLayout {
         let _ = app_state;
 
         // Handle WebView visibility
-        if let ViewMode::Webview(url) = &view_mode {
-            let url_clone = url.clone();
-            let webview_zoom = self.app_state.read(cx).config.webview_zoom;
+        // Handle WebView visibility
+        match &view_mode {
+            ViewMode::Webview(url) => {
+                let url_clone = url.clone();
+                let webview_zoom = self.app_state.read(cx).config.webview_zoom;
 
-            if self.current_webview_url.as_ref() != Some(&url_clone) {
-                self.current_webview_url = Some(url_clone.clone());
-                self.webview
-                    .update(cx, |webview, _| webview.load_url(&url_clone));
+                if self.current_webview_url.as_ref() != Some(&url_clone) {
+                    self.current_webview_url = Some(url_clone.clone());
+                    self.webview
+                        .update(cx, |webview, _| webview.load_url(&url_clone));
+                }
+                if self.current_zoom_level != webview_zoom {
+                    self.current_zoom_level = webview_zoom;
+                    let zoom_script = format!("document.body.style.zoom = '{}%';", webview_zoom);
+                    self.webview
+                        .update(cx, |webview, _| webview.evaluate_script(&zoom_script).ok());
+                }
+                self.webview.update(cx, |webview, _| webview.show());
             }
-            if self.current_zoom_level != webview_zoom {
-                self.current_zoom_level = webview_zoom;
-                let zoom_script = format!("document.body.style.zoom = '{}%';", webview_zoom);
-                self.webview
-                    .update(cx, |webview, _| webview.evaluate_script(&zoom_script).ok());
+            _ => {
+                self.current_webview_url = None;
+                self.webview.update(cx, |webview, _| webview.hide());
             }
-            self.webview.update(cx, |webview, _| webview.show());
-        } else {
-            self.current_webview_url = None;
-            self.webview.update(cx, |webview, _| webview.hide());
         }
 
         div()
@@ -139,6 +161,8 @@ impl Render for HnLayout {
             .child(match view_mode {
                 ViewMode::List => div().flex_1().child(self.story_list_view.clone()),
                 ViewMode::Story(_) => div().flex_1().child(self.story_detail_view.clone()),
+                ViewMode::Bookmarks => div().flex_1().child(self.bookmark_list_view.clone()),
+                ViewMode::History => div().flex_1().child(self.history_list_view.clone()),
                 ViewMode::Webview(_) => {
                     let app_state_entity = self.app_state.clone();
                     div()

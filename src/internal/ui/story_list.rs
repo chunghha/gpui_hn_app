@@ -3,6 +3,7 @@ use crate::state::AppState;
 use gpui::{
     Context, Entity, FocusHandle, IntoElement, MouseButton, Render, Window, div, prelude::*,
 };
+use gpui_component::menu::ContextMenuExt;
 use gpui_component::theme::ActiveTheme;
 
 /// StoryListView - renders story list with infinite scroll
@@ -93,11 +94,14 @@ impl Render for StoryListView {
                     .gap_2()
                     .children(stories.iter().map(|story| {
                         let app_state_entity = self.app_state.clone();
+                        let is_bookmarked = app_state.bookmarks.is_bookmarked(story.id);
                         story_item(
                             story.id,
                             story.title.clone().unwrap_or_default(),
+                            story.url.clone(),
                             story.score.unwrap_or(0),
                             story.descendants.unwrap_or(0),
+                            is_bookmarked,
                             colors.background.into(),
                             colors.foreground.into(),
                             colors.foreground.into(),
@@ -147,8 +151,10 @@ impl Render for StoryListView {
 fn story_item(
     id: u32,
     title: String,
+    url: Option<String>,
     score: u32,
     comments: u32,
+    is_bookmarked: bool,
     surface_color: gpui::Rgba,
     text_color: gpui::Rgba,
     meta_text_color: gpui::Rgba,
@@ -165,37 +171,105 @@ fn story_item(
         .border_color(border_color)
         .rounded_md()
         .cursor_pointer()
-        .on_mouse_down(MouseButton::Left, move |_, _window, cx| {
-            AppState::select_story(app_state.clone(), id, cx);
+        .on_mouse_down(MouseButton::Left, {
+            let app_state_click = app_state.clone();
+            move |_, _window, cx| {
+                AppState::select_story(app_state_click.clone(), id, cx);
+            }
         })
         .child(
             div()
                 .text_base()
                 .font_weight(gpui::FontWeight::MEDIUM)
                 .text_color(text_color)
-                .child(title),
+                .child(title.clone()),
         )
         .child(
             div()
                 .flex()
-                .gap_4()
-                .text_sm()
-                .text_color(meta_text_color)
+                .justify_between()
                 .child(
                     div()
                         .flex()
-                        .gap_1()
-                        .items_center()
-                        .child("⭐")
-                        .child(format!("{}", score)),
+                        .gap_4()
+                        .text_sm()
+                        .text_color(meta_text_color)
+                        .child(
+                            div()
+                                .flex()
+                                .gap_1()
+                                .items_center()
+                                .child("⭐")
+                                .child(format!("{}", score)),
+                        )
+                        .child(
+                            div()
+                                .flex()
+                                .gap_1()
+                                .items_center()
+                                .child("💬")
+                                .child(format!("{}", comments)),
+                        ),
                 )
-                .child(
-                    div()
-                        .flex()
-                        .gap_1()
-                        .items_center()
-                        .child("💬")
-                        .child(format!("{}", comments)),
-                ),
+                .when(is_bookmarked, |this| {
+                    this.child(
+                        div()
+                            .text_color(gpui::rgb(0xFFD700)) // Gold color
+                            .child("★"),
+                    )
+                }),
         )
+        .context_menu(move |menu, _window, _cx| {
+            let app_state_bookmark = app_state.clone();
+            let app_state_bookmarks_nav = app_state.clone();
+            let app_state_history_nav = app_state.clone();
+            let title_bookmark = title.clone();
+            let url_bookmark = url.clone();
+            let url_browser = url.clone();
+
+            menu.item(
+                gpui_component::menu::PopupMenuItem::new(if is_bookmarked {
+                    "Remove Bookmark"
+                } else {
+                    "Bookmark"
+                })
+                .on_click(move |_, _, cx| {
+                    tracing::debug!("Context menu: Bookmark toggle clicked for story {}", id);
+                    AppState::toggle_bookmark_by_data(
+                        app_state_bookmark.clone(),
+                        id,
+                        Some(title_bookmark.clone()),
+                        url_bookmark.clone(),
+                        cx,
+                    );
+                }),
+            )
+            .separator()
+            .item(
+                gpui_component::menu::PopupMenuItem::new("Open in Browser").on_click(
+                    move |_, _, cx| {
+                        if let Some(url) = &url_browser {
+                            cx.open_url(url);
+                        }
+                    },
+                ),
+            )
+            .separator()
+            .item(
+                gpui_component::menu::PopupMenuItem::new("Go to Bookmarks").on_click(
+                    move |_, _, cx| {
+                        tracing::debug!("Context menu: Go to Bookmarks clicked");
+                        AppState::show_bookmarks(app_state_bookmarks_nav.clone(), cx);
+                    },
+                ),
+            )
+            .item(
+                gpui_component::menu::PopupMenuItem::new("Go to History").on_click(
+                    move |_, _, cx| {
+                        tracing::debug!("Context menu: Go to History clicked");
+                        AppState::show_history(app_state_history_nav.clone(), cx);
+                    },
+                ),
+            )
+        })
 }

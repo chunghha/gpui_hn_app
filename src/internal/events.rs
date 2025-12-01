@@ -14,7 +14,11 @@ pub fn handle_key_down(
     let key = event.keystroke.key.as_str();
 
     // Debug logging
-    tracing::debug!("Key pressed: '{}'", key);
+    tracing::debug!(
+        "Key pressed: '{}', modifiers: {:?}",
+        key,
+        event.keystroke.modifiers
+    );
 
     // Handle Cmd+Q (quit) - platform modifier is Cmd on Mac, Ctrl on Windows/Linux
     if event.keystroke.modifiers.platform && key == "q" {
@@ -23,7 +27,21 @@ pub fn handle_key_down(
         return;
     }
 
-    // Handle single-key shortcuts (j, k, g)
+    // Handle single-key shortcuts (j, k, g, b, B, H, X)
+    // Handle Escape key to return to List view from Bookmarks/History
+    if key == "escape" {
+        let view_mode = viewer.app_state.read(cx).view_mode.clone();
+        match view_mode {
+            ViewMode::Bookmarks | ViewMode::History => {
+                tracing::debug!("Escape key - returning to List view");
+                crate::state::AppState::show_stories(viewer.app_state.clone(), cx);
+                cx.notify();
+            }
+            _ => {}
+        }
+        return;
+    }
+
     match key {
         "j" => {
             tracing::debug!("Scroll down (j)");
@@ -36,6 +54,16 @@ pub fn handle_key_down(
                 }
                 ViewMode::Story(_) => {
                     viewer.story_detail_view().update(cx, |view, _| {
+                        view.scroll_by(SCROLL_STEP);
+                    });
+                }
+                ViewMode::Bookmarks => {
+                    viewer.bookmark_list_view().update(cx, |view, _| {
+                        view.scroll_by(SCROLL_STEP);
+                    });
+                }
+                ViewMode::History => {
+                    viewer.history_list_view().update(cx, |view, _| {
                         view.scroll_by(SCROLL_STEP);
                     });
                 }
@@ -59,6 +87,16 @@ pub fn handle_key_down(
                         view.scroll_by(-SCROLL_STEP);
                     });
                 }
+                ViewMode::Bookmarks => {
+                    viewer.bookmark_list_view().update(cx, |view, _| {
+                        view.scroll_by(-SCROLL_STEP);
+                    });
+                }
+                ViewMode::History => {
+                    viewer.history_list_view().update(cx, |view, _| {
+                        view.scroll_by(-SCROLL_STEP);
+                    });
+                }
                 ViewMode::Webview(_) => {
                     // WebView handles its own scrolling
                 }
@@ -79,11 +117,63 @@ pub fn handle_key_down(
                         view.scroll_to_top();
                     });
                 }
+                ViewMode::Bookmarks => {
+                    viewer.bookmark_list_view().update(cx, |view, _| {
+                        view.scroll_to_top();
+                    });
+                }
+                ViewMode::History => {
+                    viewer.history_list_view().update(cx, |view, _| {
+                        view.scroll_to_top();
+                    });
+                }
                 ViewMode::Webview(_) => {
                     // WebView handles its own scrolling
                 }
             }
             cx.notify();
+        }
+        "b" => {
+            if event.keystroke.modifiers.shift {
+                tracing::debug!("Show bookmarks (Shift+B)");
+                crate::state::AppState::show_bookmarks(viewer.app_state.clone(), cx);
+                cx.notify();
+            } else {
+                let view_mode = viewer.app_state.read(cx).view_mode.clone();
+                tracing::debug!("Toggle bookmark (b) - current view_mode: {:?}", view_mode);
+                match view_mode {
+                    ViewMode::Story(_) => {
+                        tracing::debug!("Toggling bookmark for current story");
+                        crate::state::AppState::toggle_bookmark(viewer.app_state.clone(), cx);
+                        cx.notify();
+                    }
+                    _ => {
+                        tracing::debug!("Cannot bookmark - not in Story view");
+                    }
+                }
+            }
+        }
+        "h" => {
+            if event.keystroke.modifiers.shift {
+                tracing::debug!("Show history (Shift+H)");
+                crate::state::AppState::show_history(viewer.app_state.clone(), cx);
+                cx.notify();
+            }
+        }
+        "x" => {
+            if event.keystroke.modifiers.shift {
+                tracing::debug!("Clear history (Shift+X)");
+                let view_mode = viewer.app_state.read(cx).view_mode.clone();
+                match view_mode {
+                    ViewMode::History => {
+                        crate::state::AppState::clear_history(viewer.app_state.clone(), cx);
+                        cx.notify();
+                    }
+                    _ => {
+                        // Only allow clearing history in History view
+                    }
+                }
+            }
         }
         _ => {
             // Other keys - do nothing

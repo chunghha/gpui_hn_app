@@ -1,5 +1,7 @@
 pub mod api;
+pub mod bookmarks;
 pub mod config;
+pub mod history;
 pub mod internal;
 pub mod state;
 pub mod utils;

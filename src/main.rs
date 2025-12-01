@@ -1,19 +1,43 @@
 use gpui::{App, Application, Bounds, WindowBounds, WindowOptions, prelude::*, px, size};
 
 mod api;
+mod bookmarks;
 mod config;
+mod history;
 mod internal;
 mod state;
 mod utils;
 
 use crate::internal::layout::HnLayout;
-use crate::internal::ui::{StoryDetailView, StoryListView};
+use crate::internal::ui::{BookmarkListView, HistoryListView, StoryDetailView, StoryListView};
 use crate::state::AppState;
 
 use std::process;
 
+/// Initialize file-based logging with daily rotation
+fn init_logging() {
+    let logs_dir = std::path::PathBuf::from("./logs");
+    std::fs::create_dir_all(&logs_dir).ok();
+
+    let file_appender = tracing_appender::rolling::daily(logs_dir, "gpui-hn-app.log");
+    let (non_blocking, guard) = tracing_appender::non_blocking(file_appender);
+
+    // Leak the guard to keep it alive for the entire program lifetime
+    // This is necessary to ensure logs are flushed properly
+    Box::leak(Box::new(guard));
+
+    tracing_subscriber::fmt()
+        .with_writer(non_blocking)
+        .with_ansi(false)
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info")),
+        )
+        .init();
+}
+
 fn main() {
-    tracing_subscriber::fmt::try_init().ok();
+    init_logging();
 
     Application::new().run(move |cx: &mut App| {
         gpui_component::theme::init(cx);
@@ -25,13 +49,12 @@ fn main() {
         // Determine a directory to watch for themes.
         // If config specifies a file, watch its parent directory; otherwise watch the configured path.
         let configured_path = std::path::PathBuf::from(app_config.theme_file.clone());
-        let watch_path = if configured_path.is_file() {
-            configured_path
+        let watch_path = match configured_path.is_file() {
+            true => configured_path
                 .parent()
                 .map(|p| p.to_path_buf())
-                .unwrap_or_else(|| std::path::PathBuf::from("./themes"))
-        } else {
-            configured_path
+                .unwrap_or_else(|| std::path::PathBuf::from("./themes")),
+            false => configured_path,
         };
 
         if let Err(err) = gpui_component::ThemeRegistry::watch_dir(watch_path, cx, move |cx| {
@@ -64,10 +87,16 @@ fn main() {
                     let story_list_view = cx.new(|cx| StoryListView::new(app_state.clone(), cx));
                     let story_detail_view =
                         cx.new(|cx| StoryDetailView::new(app_state.clone(), cx));
+                    let bookmark_list_view =
+                        cx.new(|cx| BookmarkListView::new(app_state.clone(), cx));
+                    let history_list_view =
+                        cx.new(|cx| HistoryListView::new(app_state.clone(), cx));
                     HnLayout::new(
                         app_state.clone(),
                         story_list_view,
                         story_detail_view,
+                        bookmark_list_view,
+                        history_list_view,
                         window,
                         cx,
                     )

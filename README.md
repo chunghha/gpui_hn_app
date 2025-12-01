@@ -187,13 +187,16 @@ Recommended helper tasks (see `Taskfile.yml` in the project root):
 
 ### Keyboard Shortcuts
 
-The app supports vi-style keyboard shortcuts for efficient navigation:
-
-| Shortcut | Action |
-|----------|--------|
-| `j` | Scroll down (50px) |
-| `k` | Scroll up (50px) |
-| `g` | Jump to top |
+| Key | Action |
+|-----|--------|
+| `j` / `k` | Navigate stories down/up |
+| `g` | Scroll to top |
+| `Enter` | Open story details / comments |
+| `b` | Toggle bookmark |
+| `B` | View bookmarks |
+| `H` | View history |
+| `X` | Clear history (in history view) |
+| `Esc` | Go back / Close webview |
 | `Cmd+Q` (Mac) / `Ctrl+Q` (Windows/Linux) | Quit application |
 
 Notes:
