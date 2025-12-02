@@ -11,6 +11,8 @@ pub struct StoryListView {
     app_state: Entity<AppState>,
     scroll_state: ScrollState,
     focus_handle: FocusHandle,
+    search_focus_handle: FocusHandle,
+    history_index: Option<usize>,
 }
 
 impl StoryListView {
@@ -22,6 +24,8 @@ impl StoryListView {
             app_state,
             scroll_state: ScrollState::new(),
             focus_handle: cx.focus_handle(),
+            search_focus_handle: cx.focus_handle(),
+            history_index: None,
         }
     }
 
@@ -35,114 +39,283 @@ impl StoryListView {
 }
 
 impl Render for StoryListView {
-    fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        let app_state = self.app_state.read(cx);
-        let stories = app_state.stories.clone();
-        let loading = app_state.loading;
-        let loading_more = app_state.loading_more;
-        let all_loaded = app_state.all_stories_loaded;
-        let _ = app_state; // Release borrow
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let app_state_read = self.app_state.read(cx);
+        let stories = app_state_read.get_filtered_sorted_stories();
+        let loading = app_state_read.loading;
+        let loading_more = app_state_read.loading_more;
+        let all_loaded = app_state_read.all_stories_loaded;
+        let search_query = app_state_read.search_query.clone();
+        let search_mode = app_state_read.search_mode;
+        let sort_option = app_state_read.sort_option;
+        let sort_order = app_state_read.sort_order;
+        let regex_error = app_state_read.regex_error.clone();
+        let should_focus = app_state_read.should_focus_search;
+        let _ = app_state_read; // Release borrow
+
+        if should_focus {
+            window.focus(&self.search_focus_handle);
+            let app_state = self.app_state.clone();
+            cx.on_next_frame(window, move |_, _, cx| {
+                AppState::consume_search_focus(app_state, cx);
+            });
+        }
 
         let scroll_y = self.scroll_state.scroll_y;
         let colors = cx.theme().colors;
 
         div()
-            .track_focus(&self.focus_handle)
             .flex()
+            .flex_col()
             .size_full()
-            .overflow_hidden()
-            .on_scroll_wheel(
-                cx.listener(|this, event: &gpui::ScrollWheelEvent, window, cx| {
-                    let delta_pixels = event.delta.pixel_delta(gpui::px(1.0)).y;
-                    let delta_y: f32 = delta_pixels.into();
-                    this.scroll_state.scroll_by(-delta_y);
-
-                    // Check if we're near the bottom to load more stories
-                    let estimated_height = (this.app_state.read(cx).stories.len() as f32) * 88.0;
-                    let viewport_height: f32 = window.viewport_size().height.into();
-
-                    if this.scroll_state.scroll_y > estimated_height - viewport_height - 200.0 {
-                        let app_state = this.app_state.read(cx);
-                        let should_load = !app_state.loading_more
-                            && !app_state.all_stories_loaded
-                            && !app_state.loading;
-                        let _ = app_state;
-
-                        if should_load {
-                            let entity = this.app_state.clone();
-                            let foreground = cx.foreground_executor().clone();
-                            let mut async_cx = cx.to_async();
-                            foreground
-                                .spawn(async move {
-                                    AppState::fetch_more_stories(entity, &mut async_cx).await;
-                                })
-                                .detach();
-                        }
-                    }
-
-                    cx.notify();
-                }),
-            )
             .child(
+                // Search Bar & Status
                 div()
                     .flex()
                     .flex_col()
                     .w_full()
-                    .relative()
-                    .top(gpui::px(-scroll_y))
+                    .bg(colors.secondary)
+                    .border_b_1()
+                    .border_color(colors.border)
                     .p_2()
                     .gap_2()
-                    .children(stories.iter().map(|story| {
-                        let app_state_entity = self.app_state.clone();
-                        let is_bookmarked = app_state.bookmarks.is_bookmarked(story.id);
-                        story_item(
-                            story.id,
-                            story.title.clone().unwrap_or_default(),
-                            story.url.clone(),
-                            story.score.unwrap_or(0),
-                            story.descendants.unwrap_or(0),
-                            is_bookmarked,
-                            colors.background.into(),
-                            colors.foreground.into(),
-                            colors.foreground.into(),
-                            colors.border.into(),
-                            app_state_entity,
-                        )
-                    }))
-                    .when(loading && stories.is_empty(), |this| {
-                        this.child(
-                            div()
-                                .p_4()
-                                .flex()
-                                .justify_center()
-                                .text_color(colors.foreground)
-                                .child("Loading stories..."),
-                        )
-                    })
-                    .when(loading_more, |this| {
-                        this.child(
-                            div()
-                                .p_4()
-                                .flex()
-                                .justify_center()
-                                .text_sm()
-                                .font_weight(gpui::FontWeight::SEMIBOLD)
-                                .text_color(colors.foreground)
-                                .child("Loading more stories..."),
-                        )
-                    })
-                    .when(all_loaded && !stories.is_empty(), |this| {
-                        this.child(
-                            div()
-                                .p_4()
-                                .flex()
-                                .justify_center()
-                                .text_sm()
-                                .font_weight(gpui::FontWeight::SEMIBOLD)
-                                .text_color(colors.foreground)
-                                .child("• End of list - No more stories •"),
-                        )
-                    }),
+                    .child(
+                        // Input Area
+                        div()
+                            .flex()
+                            .items_center()
+                            .gap_2()
+                            .bg(colors.background)
+                            .border_1()
+                            .border_color(if self.search_focus_handle.is_focused(window) {
+                                colors.accent
+                            } else {
+                                colors.border
+                            })
+                            .rounded_md()
+                            .p_1()
+                            .track_focus(&self.search_focus_handle)
+                            .on_key_down(cx.listener(
+                                |this, event: &gpui::KeyDownEvent, _window, cx| {
+                                    let keystroke = &event.keystroke;
+                                    if keystroke.modifiers.platform
+                                        || keystroke.modifiers.control
+                                        || keystroke.modifiers.alt
+                                    {
+                                        return;
+                                    }
+
+                                    if keystroke.key == "enter" {
+                                        let query = this.app_state.read(cx).search_query.clone();
+                                        if !query.is_empty() {
+                                            this.app_state.update(cx, |state, _| {
+                                                state.search_history.add(query);
+                                            });
+                                            this.history_index = None;
+                                        }
+                                        return;
+                                    }
+
+                                    if keystroke.key == "up" {
+                                        let history =
+                                            this.app_state.read(cx).search_history.get_all();
+                                        if !history.is_empty() {
+                                            let new_index = match this.history_index {
+                                                Some(i) => (i + 1).min(history.len() - 1),
+                                                None => 0,
+                                            };
+                                            this.history_index = Some(new_index);
+                                            let query = history[new_index].clone();
+                                            AppState::set_search_query(
+                                                this.app_state.clone(),
+                                                query,
+                                                cx,
+                                            );
+                                        }
+                                        return;
+                                    }
+
+                                    if keystroke.key == "down" {
+                                        let history =
+                                            this.app_state.read(cx).search_history.get_all();
+                                        if let Some(i) = this.history_index {
+                                            if i > 0 {
+                                                let new_index = i - 1;
+                                                this.history_index = Some(new_index);
+                                                let query = history[new_index].clone();
+                                                AppState::set_search_query(
+                                                    this.app_state.clone(),
+                                                    query,
+                                                    cx,
+                                                );
+                                            } else {
+                                                this.history_index = None;
+                                                AppState::set_search_query(
+                                                    this.app_state.clone(),
+                                                    "".to_string(),
+                                                    cx,
+                                                );
+                                            }
+                                        }
+                                        return;
+                                    }
+
+                                    let mut query = this.app_state.read(cx).search_query.clone();
+
+                                    if keystroke.key == "backspace" {
+                                        query.pop();
+                                        AppState::set_search_query(
+                                            this.app_state.clone(),
+                                            query,
+                                            cx,
+                                        );
+                                        this.history_index = None;
+                                    } else if keystroke.key.len() == 1 {
+                                        query.push_str(&keystroke.key);
+                                        AppState::set_search_query(
+                                            this.app_state.clone(),
+                                            query,
+                                            cx,
+                                        );
+                                        this.history_index = None;
+                                    }
+                                },
+                            ))
+                            .child(div().text_sm().text_color(colors.foreground).child(
+                                if search_query.is_empty() {
+                                    "Type to search... (Ctrl+R for Regex)".to_string()
+                                } else {
+                                    search_query.clone()
+                                },
+                            )),
+                    )
+                    .child(
+                        // Status Bar
+                        div()
+                            .flex()
+                            .justify_between()
+                            .text_xs()
+                            .text_color(colors.foreground)
+                            .child(
+                                div()
+                                    .flex()
+                                    .gap_2()
+                                    .child(format!("Mode: {:?}", search_mode))
+                                    .child(format!("Sort: {:?} ({:?})", sort_option, sort_order)),
+                            )
+                            .child(if let Some(err) = regex_error {
+                                div()
+                                    .text_color(gpui::rgb(0xFF0000))
+                                    .child(format!("Regex Error: {}", err))
+                            } else {
+                                div()
+                            }),
+                    ),
+            )
+            .child(
+                div()
+                    .track_focus(&self.focus_handle)
+                    .flex()
+                    .size_full()
+                    .overflow_hidden()
+                    .on_scroll_wheel(cx.listener(
+                        |this, event: &gpui::ScrollWheelEvent, window, cx| {
+                            let delta_pixels = event.delta.pixel_delta(gpui::px(1.0)).y;
+                            let delta_y: f32 = delta_pixels.into();
+                            this.scroll_state.scroll_by(-delta_y);
+
+                            // Check if we're near the bottom to load more stories
+                            let estimated_height =
+                                (this.app_state.read(cx).stories.len() as f32) * 88.0;
+                            let viewport_height: f32 = window.viewport_size().height.into();
+
+                            if this.scroll_state.scroll_y
+                                > estimated_height - viewport_height - 200.0
+                            {
+                                let app_state = this.app_state.read(cx);
+                                let should_load = !app_state.loading_more
+                                    && !app_state.all_stories_loaded
+                                    && !app_state.loading;
+                                let _ = app_state;
+
+                                if should_load {
+                                    let entity = this.app_state.clone();
+                                    let foreground = cx.foreground_executor().clone();
+                                    let mut async_cx = cx.to_async();
+                                    foreground
+                                        .spawn(async move {
+                                            AppState::fetch_more_stories(entity, &mut async_cx)
+                                                .await;
+                                        })
+                                        .detach();
+                                }
+                            }
+
+                            cx.notify();
+                        },
+                    ))
+                    .child(
+                        div()
+                            .flex()
+                            .flex_col()
+                            .w_full()
+                            .relative()
+                            .top(gpui::px(-scroll_y))
+                            .p_2()
+                            .gap_2()
+                            .children(stories.iter().map(|story| {
+                                let app_state_entity = self.app_state.clone();
+                                let is_bookmarked =
+                                    app_state_read.bookmarks.is_bookmarked(story.id);
+                                story_item(
+                                    story.id,
+                                    story.title.clone().unwrap_or_default(),
+                                    story.url.clone(),
+                                    story.score.unwrap_or(0),
+                                    story.descendants.unwrap_or(0),
+                                    is_bookmarked,
+                                    colors.background.into(),
+                                    colors.foreground.into(),
+                                    colors.foreground.into(),
+                                    colors.border.into(),
+                                    app_state_entity,
+                                )
+                            }))
+                            .when(loading && stories.is_empty(), |this| {
+                                this.child(
+                                    div()
+                                        .p_4()
+                                        .flex()
+                                        .justify_center()
+                                        .text_color(colors.foreground)
+                                        .child("Loading stories..."),
+                                )
+                            })
+                            .when(loading_more, |this| {
+                                this.child(
+                                    div()
+                                        .p_4()
+                                        .flex()
+                                        .justify_center()
+                                        .text_sm()
+                                        .font_weight(gpui::FontWeight::SEMIBOLD)
+                                        .text_color(colors.foreground)
+                                        .child("Loading more stories..."),
+                                )
+                            })
+                            .when(all_loaded && !stories.is_empty(), |this| {
+                                this.child(
+                                    div()
+                                        .p_4()
+                                        .flex()
+                                        .justify_center()
+                                        .text_sm()
+                                        .font_weight(gpui::FontWeight::SEMIBOLD)
+                                        .text_color(colors.foreground)
+                                        .child("• End of list - No more stories •"),
+                                )
+                            }),
+                    ),
             )
     }
 }

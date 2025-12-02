@@ -5,6 +5,7 @@ mod bookmarks;
 mod config;
 mod history;
 mod internal;
+mod search;
 mod state;
 mod utils;
 

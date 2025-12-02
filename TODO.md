@@ -57,17 +57,17 @@ The TUI version (v0.9.4) has successfully implemented:
 ### v0.12.0 - Enhanced Search & Sorting 🔍
 **Focus**: Discovery and organization
 
-- [ ] **Enhanced Search**
-    - [ ] Regex search support with `Ctrl+R` or `F3`
-    - [ ] Search modes: Title only, Comments only, or Both (cycle with `Ctrl+M` or `F2`)
-    - [ ] Search history navigation with `↑`/`↓` arrows
-    - [ ] Persistent search history (last 20 searches)
-    - [ ] Live regex error feedback
+- [x] **Enhanced Search**
+    - [x] Regex search support with `Ctrl+R` or `F3`
+    - [x] Search modes: Title only, Comments only, or Both (cycle with `Ctrl+M` or `F2`)
+    - [x] Search history navigation with `↑`/`↓` arrows
+    - [x] Persistent search history (last 20 searches)
+    - [x] Live regex error feedback
 
-- [ ] **Sorting Options**
-    - [ ] Sort by Score, Comments, or Time
-    - [ ] Toggle Ascending/Descending order with `O` key
-    - [ ] Visual indicator showing current sort mode
+- [x] **Sorting Options**
+    - [x] Sort by Score, Comments, or Time
+    - [x] Toggle Ascending/Descending order with `O` key
+    - [x] Visual indicator showing current sort mode
 
 **Dependencies**: `regex`
 

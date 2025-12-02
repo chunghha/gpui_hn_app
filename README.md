@@ -46,6 +46,8 @@ The codebase follows a clear separation between public APIs (`api`, `config`, `s
 - Configurable fonts, WebView zoom, and window size
 - Dark/Light theme support (Flexoki theme included)
 - Responsive scrolling with infinite loading
+- **Enhanced Search**: Regex support, search history, and multiple search modes (Title, Comments, Both)
+- **Sorting**: Sort stories by Score, Comments, or Time (Ascending/Descending)
 
 ## Screenshots
 
@@ -198,6 +200,11 @@ Recommended helper tasks (see `Taskfile.yml` in the project root):
 | `X` | Clear history (in history view) |
 | `Esc` | Go back / Close webview |
 | `Cmd+Q` (Mac) / `Ctrl+Q` (Windows/Linux) | Quit application |
+| `Ctrl+R` | Focus search bar (supports Regex) |
+| `Ctrl+M` | Cycle search mode (Title/Comments/Both) |
+| `Ctrl+S` | Cycle sort option (Score/Comments/Time) |
+| `O` | Toggle sort order (Asc/Desc) |
+| `Up` / `Down` | Navigate search history (in search bar) |
 
 Notes:
 - Keyboard shortcuts work in both List view and Story detail view

@@ -3,6 +3,7 @@ mod imp {
     use crate::bookmarks::Bookmarks;
     use crate::history::History;
     use crate::internal::models::{Comment, Story};
+    use crate::search::SearchHistory;
     use crate::utils::html::extract_text_from_html;
     use futures::StreamExt;
     use futures::channel::mpsc;
@@ -16,6 +17,26 @@ mod imp {
         Webview(String),
         Bookmarks,
         History,
+    }
+
+    #[derive(Clone, PartialEq, Debug, Copy)]
+    pub enum SearchMode {
+        Title,
+        Comments,
+        Both,
+    }
+
+    #[derive(Clone, PartialEq, Debug, Copy)]
+    pub enum SortOption {
+        Score,
+        Comments,
+        Time,
+    }
+
+    #[derive(Clone, PartialEq, Debug, Copy)]
+    pub enum SortOrder {
+        Ascending,
+        Descending,
     }
 
     pub struct AppState {
@@ -37,6 +58,13 @@ mod imp {
         pub loaded_count: usize,
         pub bookmarks: Bookmarks,
         pub history: History,
+        pub search_history: SearchHistory,
+        pub search_query: String,
+        pub search_mode: SearchMode,
+        pub sort_option: SortOption,
+        pub sort_order: SortOrder,
+        pub regex_error: Option<String>,
+        pub should_focus_search: bool,
     }
 
     impl AppState {
@@ -44,6 +72,17 @@ mod imp {
             let api_service = Arc::new(ApiService::new());
             let bookmarks = Bookmarks::load();
             let history = History::load();
+            // Assuming config dir is available or we can construct it.
+            // For now, let's use the same logic as Bookmarks/History which seem to handle paths internally
+            // or we might need to pass the config dir.
+            // Looking at Bookmarks::load(), it seems to determine path internally.
+            // But SearchHistory::new takes a PathBuf.
+            // Let's check where Bookmarks stores files.
+            // It uses dirs::config_dir().
+            let config_dir = dirs::config_dir()
+                .map(|p| p.join("gpui-hn-app"))
+                .unwrap_or_else(|| std::path::PathBuf::from("."));
+            let search_history = SearchHistory::new(config_dir);
 
             cx.new(|_cx| Self {
                 stories: Vec::new(),
@@ -64,6 +103,13 @@ mod imp {
                 loaded_count: 0,
                 bookmarks,
                 history,
+                search_history,
+                search_query: String::new(),
+                search_mode: SearchMode::Title,
+                sort_option: SortOption::Score,
+                sort_order: SortOrder::Descending,
+                regex_error: None,
+                should_focus_search: false,
             })
         }
 
@@ -535,7 +581,260 @@ mod imp {
                 cx.notify();
             });
         }
+
+        pub fn set_search_query(entity: Entity<Self>, query: String, cx: &mut App) {
+            entity.update(cx, |state, cx| {
+                state.search_query = query;
+                // Validate regex if we want to show errors immediately
+                if !state.search_query.is_empty() {
+                    match regex::Regex::new(&state.search_query) {
+                        Ok(_) => state.regex_error = None,
+                        Err(e) => state.regex_error = Some(e.to_string()),
+                    }
+                } else {
+                    state.regex_error = None;
+                }
+                cx.notify();
+            });
+        }
+
+        pub fn trigger_search_focus(entity: Entity<Self>, cx: &mut App) {
+            entity.update(cx, |state, cx| {
+                state.should_focus_search = true;
+                cx.notify();
+            });
+        }
+
+        pub fn consume_search_focus(entity: Entity<Self>, cx: &mut App) {
+            entity.update(cx, |state, _cx| {
+                state.should_focus_search = false;
+                // No notify needed usually, or maybe yes to clear the flag?
+                // But we are in render loop usually when consuming.
+                // Actually if we update in render, we might trigger re-render?
+                // GPUI warns about updating state during render.
+                // So we should probably consume it in a `defer` or similar?
+                // Or just set it to false.
+            });
+        }
+
+        pub fn set_search_mode(entity: Entity<Self>, mode: SearchMode, cx: &mut App) {
+            entity.update(cx, |state, cx| {
+                state.search_mode = mode;
+                cx.notify();
+            });
+        }
+
+        pub fn set_sort_option(entity: Entity<Self>, option: SortOption, cx: &mut App) {
+            entity.update(cx, |state, cx| {
+                state.sort_option = option;
+                cx.notify();
+            });
+        }
+
+        pub fn toggle_sort_order(entity: Entity<Self>, cx: &mut App) {
+            entity.update(cx, |state, cx| {
+                state.sort_order = match state.sort_order {
+                    SortOrder::Ascending => SortOrder::Descending,
+                    SortOrder::Descending => SortOrder::Ascending,
+                };
+                cx.notify();
+            });
+        }
+
+        pub fn get_filtered_sorted_stories(&self) -> Vec<Story> {
+            filter_and_sort_stories(
+                &self.stories,
+                &self.search_query,
+                self.search_mode,
+                self.sort_option,
+                self.sort_order,
+            )
+        }
+    }
+
+    pub fn filter_and_sort_stories(
+        stories: &[Story],
+        search_query: &str,
+        search_mode: SearchMode,
+        sort_option: SortOption,
+        sort_order: SortOrder,
+    ) -> Vec<Story> {
+        let mut stories = stories.to_vec();
+
+        // Filter
+        if !search_query.is_empty() {
+            if let Ok(re) = regex::Regex::new(search_query) {
+                stories.retain(|story| match search_mode {
+                    SearchMode::Title => {
+                        if let Some(title) = &story.title {
+                            re.is_match(title)
+                        } else {
+                            false
+                        }
+                    }
+                    SearchMode::Comments => {
+                        if let Some(title) = &story.title {
+                            re.is_match(title)
+                        } else {
+                            false
+                        }
+                    }
+                    SearchMode::Both => {
+                        let title_match = story
+                            .title
+                            .as_ref()
+                            .map(|t| re.is_match(t))
+                            .unwrap_or(false);
+                        let url_match = story.url.as_ref().map(|u| re.is_match(u)).unwrap_or(false);
+                        title_match || url_match
+                    }
+                });
+            } else {
+                let query = search_query.to_lowercase();
+                stories.retain(|story| match search_mode {
+                    SearchMode::Title => story
+                        .title
+                        .as_ref()
+                        .map(|t| t.to_lowercase().contains(&query))
+                        .unwrap_or(false),
+                    SearchMode::Comments => story
+                        .title
+                        .as_ref()
+                        .map(|t| t.to_lowercase().contains(&query))
+                        .unwrap_or(false),
+                    SearchMode::Both => {
+                        let title_match = story
+                            .title
+                            .as_ref()
+                            .map(|t| t.to_lowercase().contains(&query))
+                            .unwrap_or(false);
+                        let url_match = story
+                            .url
+                            .as_ref()
+                            .map(|u| u.to_lowercase().contains(&query))
+                            .unwrap_or(false);
+                        title_match || url_match
+                    }
+                });
+            }
+        }
+
+        // Sort
+        stories.sort_by(|a, b| {
+            let ord = match sort_option {
+                SortOption::Score => a.score.unwrap_or(0).cmp(&b.score.unwrap_or(0)),
+                SortOption::Comments => a.descendants.unwrap_or(0).cmp(&b.descendants.unwrap_or(0)),
+                SortOption::Time => a.time.unwrap_or(0).cmp(&b.time.unwrap_or(0)),
+            };
+            match sort_order {
+                SortOrder::Ascending => ord,
+                SortOrder::Descending => ord.reverse(),
+            }
+        });
+
+        stories
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+        use crate::internal::models::Story;
+
+        fn create_story(id: u32, title: &str, score: u32, comments: u32, time: u64) -> Story {
+            Story {
+                id,
+                title: Some(title.to_string()),
+                url: None,
+                by: None,
+                score: Some(score),
+                time: Some(time as i64),
+                descendants: Some(comments),
+                kids: None,
+            }
+        }
+
+        #[test]
+        fn test_filter_by_title() {
+            let stories = vec![
+                create_story(1, "Rust is great", 100, 10, 1000),
+                create_story(2, "Python is good", 50, 5, 2000),
+                create_story(3, "Rust vs C++", 80, 20, 3000),
+            ];
+
+            let filtered = filter_and_sort_stories(
+                &stories,
+                "Rust",
+                SearchMode::Title,
+                SortOption::Score,
+                SortOrder::Descending,
+            );
+
+            assert_eq!(filtered.len(), 2);
+            assert_eq!(filtered[0].id, 1); // 100 score
+            assert_eq!(filtered[1].id, 3); // 80 score
+        }
+
+        #[test]
+        fn test_filter_regex() {
+            let stories = vec![
+                create_story(1, "Rust 1.0", 100, 10, 1000),
+                create_story(2, "Rust 2.0", 50, 5, 2000),
+                create_story(3, "Go 1.0", 80, 20, 3000),
+            ];
+
+            let filtered = filter_and_sort_stories(
+                &stories,
+                r"Rust \d\.\d",
+                SearchMode::Title,
+                SortOption::Score,
+                SortOrder::Descending,
+            );
+
+            assert_eq!(filtered.len(), 2);
+        }
+
+        #[test]
+        fn test_sort_by_comments() {
+            let stories = vec![
+                create_story(1, "A", 10, 5, 1000),
+                create_story(2, "B", 10, 20, 1000),
+                create_story(3, "C", 10, 10, 1000),
+            ];
+
+            let sorted = filter_and_sort_stories(
+                &stories,
+                "",
+                SearchMode::Title,
+                SortOption::Comments,
+                SortOrder::Descending,
+            );
+
+            assert_eq!(sorted[0].id, 2); // 20 comments
+            assert_eq!(sorted[1].id, 3); // 10 comments
+            assert_eq!(sorted[2].id, 1); // 5 comments
+        }
+
+        #[test]
+        fn test_sort_ascending() {
+            let stories = vec![
+                create_story(1, "A", 100, 10, 1000),
+                create_story(2, "B", 50, 10, 1000),
+                create_story(3, "C", 200, 10, 1000),
+            ];
+
+            let sorted = filter_and_sort_stories(
+                &stories,
+                "",
+                SearchMode::Title,
+                SortOption::Score,
+                SortOrder::Ascending,
+            );
+
+            assert_eq!(sorted[0].id, 2); // 50
+            assert_eq!(sorted[1].id, 1); // 100
+            assert_eq!(sorted[2].id, 3); // 200
+        }
     }
 }
 
-pub use imp::{AppState, ViewMode};
+pub use imp::{AppState, SearchMode, SortOption, ViewMode};

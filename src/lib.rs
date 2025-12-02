@@ -3,5 +3,6 @@ pub mod bookmarks;
 pub mod config;
 pub mod history;
 pub mod internal;
+pub mod search;
 pub mod state;
 pub mod utils;

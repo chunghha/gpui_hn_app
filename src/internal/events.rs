@@ -42,6 +42,50 @@ pub fn handle_key_down(
         return;
     }
 
+    // Handle Ctrl+R (Focus Search)
+    if event.keystroke.modifiers.control && key == "r" {
+        tracing::debug!("Focus search (Ctrl+R)");
+        crate::state::AppState::trigger_search_focus(viewer.app_state.clone(), cx);
+        cx.notify();
+        return;
+    }
+
+    // Handle Ctrl+M (Cycle Search Mode)
+    if event.keystroke.modifiers.control && key == "m" {
+        tracing::debug!("Cycle search mode (Ctrl+M)");
+        let current_mode = viewer.app_state.read(cx).search_mode;
+        let next_mode = match current_mode {
+            crate::state::SearchMode::Title => crate::state::SearchMode::Comments,
+            crate::state::SearchMode::Comments => crate::state::SearchMode::Both,
+            crate::state::SearchMode::Both => crate::state::SearchMode::Title,
+        };
+        crate::state::AppState::set_search_mode(viewer.app_state.clone(), next_mode, cx);
+        cx.notify();
+        return;
+    }
+
+    // Handle Ctrl+S (Cycle Sort Option)
+    if event.keystroke.modifiers.control && key == "s" {
+        tracing::debug!("Cycle sort option (Ctrl+S)");
+        let current_option = viewer.app_state.read(cx).sort_option;
+        let next_option = match current_option {
+            crate::state::SortOption::Score => crate::state::SortOption::Comments,
+            crate::state::SortOption::Comments => crate::state::SortOption::Time,
+            crate::state::SortOption::Time => crate::state::SortOption::Score,
+        };
+        crate::state::AppState::set_sort_option(viewer.app_state.clone(), next_option, cx);
+        cx.notify();
+        return;
+    }
+
+    // Handle O (Toggle Sort Order)
+    if key == "o" {
+        tracing::debug!("Toggle sort order (o)");
+        crate::state::AppState::toggle_sort_order(viewer.app_state.clone(), cx);
+        cx.notify();
+        return;
+    }
+
     match key {
         "j" => {
             tracing::debug!("Scroll down (j)");
