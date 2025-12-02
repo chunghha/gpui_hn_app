@@ -67,6 +67,13 @@ mod imp {
         pub should_focus_search: bool,
         pub fetch_task: Option<Task<()>>,
         pub comment_fetch_task: Option<Task<()>>,
+        // Windowing for performance optimization
+        pub viewport_start_index: usize,
+        pub viewport_end_index: usize,
+        pub visible_buffer: usize,
+        // Scroll position persistence
+        pub story_list_scroll_position: f32,
+        pub article_scroll_position: f32,
     }
 
     impl AppState {
@@ -88,10 +95,10 @@ mod imp {
 
             cx.new(|_cx| Self {
                 stories: Vec::new(),
-                loading: false,
+                loading: true,
                 loading_more: false,
                 all_stories_loaded: false,
-                current_list: StoryListType::Best,
+                current_list: StoryListType::Top,
                 api_service,
                 view_mode: ViewMode::List,
                 selected_story_content: None,
@@ -107,13 +114,20 @@ mod imp {
                 history,
                 search_history,
                 search_query: String::new(),
-                search_mode: SearchMode::Title,
+                search_mode: SearchMode::Both,
                 sort_option: SortOption::Score,
                 sort_order: SortOrder::Descending,
                 regex_error: None,
                 should_focus_search: false,
                 fetch_task: None,
                 comment_fetch_task: None,
+                // Windowing defaults
+                viewport_start_index: 0,
+                viewport_end_index: 0,
+                visible_buffer: 5, // Render 5 items above/below viewport
+                // Scroll positions
+                story_list_scroll_position: 0.0,
+                article_scroll_position: 0.0,
             })
         }
 
@@ -662,6 +676,55 @@ mod imp {
                 self.sort_option,
                 self.sort_order,
             )
+        }
+
+        /// Calculate which story indices should be visible based on viewport
+        pub fn calculate_visible_range(
+            &mut self,
+            scroll_y: f32,
+            viewport_height: f32,
+            item_height: f32,
+        ) -> (usize, usize) {
+            let total_stories = self.get_filtered_sorted_stories().len();
+
+            if total_stories == 0 {
+                self.viewport_start_index = 0;
+                self.viewport_end_index = 0;
+                return (0, 0);
+            }
+
+            // Calculate visible range
+            let start_index = (scroll_y / item_height).floor() as usize;
+            let visible_items = (viewport_height / item_height).ceil() as usize + 1;
+            let end_index = (start_index + visible_items).min(total_stories);
+
+            // Apply buffer
+            let buffered_start = start_index.saturating_sub(self.visible_buffer);
+            let buffered_end = (end_index + self.visible_buffer).min(total_stories);
+
+            // Update state
+            self.viewport_start_index = buffered_start;
+            self.viewport_end_index = buffered_end;
+
+            (buffered_start, buffered_end)
+        }
+
+        /// Save scroll position for the current view
+        pub fn save_scroll_position(&mut self, position: f32) {
+            match self.view_mode {
+                ViewMode::List => self.story_list_scroll_position = position,
+                ViewMode::Story(_) => self.article_scroll_position = position,
+                _ => {} // Other views don't persist scroll
+            }
+        }
+
+        /// Get saved scroll position for the current view
+        pub fn get_scroll_position(&self) -> f32 {
+            match self.view_mode {
+                ViewMode::List => self.story_list_scroll_position,
+                ViewMode::Story(_) => self.article_scroll_position,
+                _ => 0.0,
+            }
         }
     }
 

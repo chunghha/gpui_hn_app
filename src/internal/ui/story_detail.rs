@@ -22,9 +22,14 @@ impl StoryDetailView {
         // Observe app_state for changes
         cx.observe(&app_state, |_, _, cx| cx.notify()).detach();
 
+        // Restore saved scroll position for article view
+        let saved_scroll_y = app_state.read(cx).get_scroll_position();
+        let mut scroll_state = ScrollState::new();
+        scroll_state.scroll_y = saved_scroll_y;
+
         Self {
             app_state,
-            scroll_state: ScrollState::new(),
+            scroll_state,
             focus_handle: cx.focus_handle(),
         }
     }
@@ -40,6 +45,13 @@ impl StoryDetailView {
 
 impl Render for StoryDetailView {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let scroll_y = self.scroll_state.scroll_y;
+
+        // Save current scroll position
+        self.app_state.update(cx, |state, _| {
+            state.save_scroll_position(scroll_y);
+        });
+
         let app_state = self.app_state.read(cx);
         let colors = cx.theme().colors;
         let font_sans = app_state.config.font_sans.clone();
@@ -63,8 +75,6 @@ impl Render for StoryDetailView {
         let loaded_comment_count = app_state.loaded_comment_count;
         let total_comment_count = app_state.comment_ids.len();
         let _ = app_state; // Release borrow
-
-        let scroll_y = self.scroll_state.scroll_y;
 
         div()
             .track_focus(&self.focus_handle)

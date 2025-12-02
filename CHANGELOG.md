@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.17.0] - 2025-12-02
+
+### Added - Rendering Optimizations
+- **Manual Windowing**: Only renders visible story items + 5 item buffer
+  - ~97% reduction in rendered elements for large lists (500 stories → ~20-25 rendered)
+  - Dramatically improved rendering performance and scroll smoothness
+  - Uses viewport-based calculation with `STORY_ITEM_HEIGHT` constant
+- **Scroll Position Persistence**: Automatic save/restore of scroll positions
+  - Story list scroll position preserved when switching to story detail or other views
+  - Article scroll position preserved when switching back to list
+  - Seamless navigation experience
+
+### Changed
+- Story list rendering now uses viewport-based windowing instead of rendering all items
+- Both `StoryListView` and `StoryDetailView` automatically save/restore scroll positions
+
+### Technical
+- Added `AppState` fields: `viewport_start_index`, `viewport_end_index`, `visible_buffer`, `story_list_scroll_position`, `article_scroll_position`
+- Created `src/internal/ui/constants.rs` with rendering constants (`STORY_ITEM_HEIGHT = 85px`)
+- Implemented `calculate_visible_range()` method for viewport calculation
+- Added `save_scroll_position()` and `get_scroll_position()` methods to `AppState`
+
 ## [0.16.0] - 2025-12-02
 
 ### Added

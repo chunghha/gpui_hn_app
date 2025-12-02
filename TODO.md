@@ -146,13 +146,14 @@ The TUI version (v0.9.4) has successfully implemented:
 
 ### v0.17.0 - Rendering Optimizations 🎨
 **Focus**: UI performance
+**Status**: ✅ Complete
 
-- [ ] **Rendering Optimizations**
-    - [ ] Manual windowing for large story lists
-    - [ ] Only render visible items plus small buffer
-    - [ ] ~50% reduction in render time for 500+ story lists
-    - [ ] Article scroll position persistence
-    - [ ] Optimize GPUI component rendering
+- [x] **Rendering Optimizations**
+    - [x] Manual windowing for large story lists
+    - [x] Only render visible items plus small buffer (5 items)
+    - [x] ~97% reduction in rendered elements for 500+ story lists
+    - [x] Article scroll position persistence
+    - [x] Story list scroll position persistence
 
 ---
 

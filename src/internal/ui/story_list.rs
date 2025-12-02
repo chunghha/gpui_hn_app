@@ -1,4 +1,5 @@
 use crate::internal::scroll::ScrollState;
+use crate::internal::ui::constants::STORY_ITEM_HEIGHT;
 use crate::state::AppState;
 use gpui::{
     Context, Entity, FocusHandle, IntoElement, MouseButton, Render, Window, div, prelude::*,
@@ -20,9 +21,14 @@ impl StoryListView {
         // Observe app_state for changes
         cx.observe(&app_state, |_, _, cx| cx.notify()).detach();
 
+        // Restore saved scroll position
+        let saved_scroll_y = app_state.read(cx).get_scroll_position();
+        let mut scroll_state = ScrollState::new();
+        scroll_state.scroll_y = saved_scroll_y;
+
         Self {
             app_state,
-            scroll_state: ScrollState::new(),
+            scroll_state,
             focus_handle: cx.focus_handle(),
             search_focus_handle: cx.focus_handle(),
             history_index: None,
@@ -40,6 +46,17 @@ impl StoryListView {
 
 impl Render for StoryListView {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let scroll_y = self.scroll_state.scroll_y;
+        let viewport_height: f32 = window.viewport_size().height.into();
+
+        // Calculate visible range first (requires mutable borrow)
+        let (start_idx, end_idx) = self.app_state.update(cx, |state, _| {
+            // Also save current scroll position while we have mutable access
+            state.save_scroll_position(scroll_y);
+            state.calculate_visible_range(scroll_y, viewport_height, STORY_ITEM_HEIGHT)
+        });
+
+        // Now read state (immutable borrow)
         let app_state_read = self.app_state.read(cx);
         let stories = app_state_read.get_filtered_sorted_stories();
         let loading = app_state_read.loading;
@@ -61,7 +78,6 @@ impl Render for StoryListView {
             });
         }
 
-        let scroll_y = self.scroll_state.scroll_y;
         let colors = cx.theme().colors;
 
         div()
@@ -260,27 +276,38 @@ impl Render for StoryListView {
                             .flex_col()
                             .w_full()
                             .relative()
-                            .top(gpui::px(-scroll_y))
-                            .p_2()
-                            .gap_2()
-                            .children(stories.iter().map(|story| {
-                                let app_state_entity = self.app_state.clone();
-                                let is_bookmarked =
-                                    app_state_read.bookmarks.is_bookmarked(story.id);
-                                story_item(
-                                    story.id,
-                                    story.title.clone().unwrap_or_default(),
-                                    story.url.clone(),
-                                    story.score.unwrap_or(0),
-                                    story.descendants.unwrap_or(0),
-                                    is_bookmarked,
-                                    colors.background.into(),
-                                    colors.foreground.into(),
-                                    colors.foreground.into(),
-                                    colors.border.into(),
-                                    app_state_entity,
+                            .child({
+                                // Only render visible stories
+                                let visible_stories: Vec<_> = stories
+                                    .iter()
+                                    .skip(start_idx)
+                                    .take(end_idx - start_idx)
+                                    .collect();
+
+                                // Offset to compensate for hidden items above
+                                let top_offset = -scroll_y + (start_idx as f32 * STORY_ITEM_HEIGHT);
+
+                                div().top(gpui::px(top_offset)).p_2().gap_2().children(
+                                    visible_stories.iter().map(|story| {
+                                        let app_state_entity = self.app_state.clone();
+                                        let bookmarks = &self.app_state.read(cx).bookmarks;
+                                        let is_bookmarked = bookmarks.is_bookmarked(story.id);
+                                        story_item(
+                                            story.id,
+                                            story.title.clone().unwrap_or_default(),
+                                            story.url.clone(),
+                                            story.score.unwrap_or(0),
+                                            story.descendants.unwrap_or(0),
+                                            is_bookmarked,
+                                            colors.background.into(),
+                                            colors.foreground.into(),
+                                            colors.foreground.into(),
+                                            colors.border.into(),
+                                            app_state_entity,
+                                        )
+                                    }),
                                 )
-                            }))
+                            })
                             .when(loading && stories.is_empty(), |this| {
                                 this.child(
                                     div()
