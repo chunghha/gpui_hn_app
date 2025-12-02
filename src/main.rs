@@ -2,6 +2,7 @@ use gpui::{App, Application, Bounds, WindowBounds, WindowOptions, prelude::*, px
 
 mod api;
 mod bookmarks;
+mod cache;
 mod config;
 mod history;
 mod internal;

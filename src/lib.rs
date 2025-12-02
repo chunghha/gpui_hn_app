@@ -1,5 +1,6 @@
 pub mod api;
 pub mod bookmarks;
+pub mod cache;
 pub mod config;
 pub mod history;
 pub mod internal;

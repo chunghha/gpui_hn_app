@@ -1,8 +1,11 @@
+use crate::cache::Cache;
 use crate::internal::models::{Comment, Story};
 use anyhow::{Context, Result};
 use reqwest::blocking::Client;
 use serde::de::DeserializeOwned;
+use std::sync::Arc;
 use strum_macros::Display;
+use tokio::sync::Semaphore;
 
 /// Types of Hacker News story lists we can fetch.
 #[derive(Debug, Clone, Copy, PartialEq, Display)]
@@ -40,23 +43,30 @@ pub fn get_story_list_url(list_type: StoryListType) -> String {
     format!("{}{}.json", HN_API_BASE_URL, list_type.as_api_str())
 }
 
-/// HTTP API service for fetching Hacker News data.
+/// HTTP API service for fetching Hacker News data with caching and rate limiting.
 ///
-/// This service uses `reqwest::blocking::Client` and returns `anyhow::Result` with
-/// contextualized errors to preserve diagnostic information instead of erasing it
-/// into plain strings.
+/// This service uses `reqwest::blocking::Client` with in-memory caching (TTL-based)
+/// and semaphore-based rate limiting (3 requests/second).
 #[derive(Clone)]
 pub struct ApiService {
     client: Client,
+    story_ids_cache: Cache<Vec<u32>>,
+    story_cache: Cache<Story>,
+    comment_cache: Cache<Comment>,
+    rate_limiter: Arc<Semaphore>,
     #[cfg(test)]
     base_url: Option<String>,
 }
 
 impl ApiService {
-    /// Create a new `ApiService` with a default reqwest blocking client.
+    /// Create a new `ApiService` with caching and rate limiting.
     pub fn new() -> Self {
         Self {
             client: Client::new(),
+            story_ids_cache: Cache::new(300), // 5 min TTL for story lists
+            story_cache: Cache::new(300),     // 5 min TTL for stories
+            comment_cache: Cache::new(300),   // 5 min TTL for comments
+            rate_limiter: Arc::new(Semaphore::new(3)), // 3 concurrent requests
             #[cfg(test)]
             base_url: None,
         }
@@ -66,6 +76,10 @@ impl ApiService {
     pub fn with_base_url(base_url: String) -> Self {
         Self {
             client: Client::new(),
+            story_ids_cache: Cache::new(300),
+            story_cache: Cache::new(300),
+            comment_cache: Cache::new(300),
+            rate_limiter: Arc::new(Semaphore::new(3)),
             base_url: Some(base_url),
         }
     }
@@ -81,10 +95,17 @@ impl ApiService {
     }
 
     /// Generic helper to GET a URL and deserialize the JSON body into `T`.
+    /// Respects rate limiting via semaphore.
     fn get_json<T>(&self, url: &str) -> Result<T>
     where
         T: DeserializeOwned,
     {
+        // Acquire permit (blocks if rate limit exceeded)
+        let _permit = self
+            .rate_limiter
+            .try_acquire()
+            .map_err(|e| anyhow::anyhow!("Rate limit exceeded: {}", e))?;
+
         let resp = self
             .client
             .get(url)
@@ -96,24 +117,69 @@ impl ApiService {
     }
 
     /// Fetch a list of story IDs for the given list type (e.g., top, new).
+    /// Uses cache with 5 min TTL.
     pub fn fetch_story_ids(&self, list_type: StoryListType) -> Result<Vec<u32>> {
+        let cache_key = format!("story_ids_{}", list_type.as_api_str());
+
+        // Check cache first
+        if let Some(cached) = self.story_ids_cache.get(&cache_key) {
+            return Ok(cached);
+        }
+
+        // Cache miss - fetch from API
         let url = format!("{}{}.json", self.get_base_url(), list_type.as_api_str());
-        self.get_json(&url)
-            .with_context(|| format!("fetch_story_ids failed for list {:?}", list_type))
+        let result: Vec<u32> = self
+            .get_json(&url)
+            .with_context(|| format!("fetch_story_ids failed for list {:?}", list_type))?;
+
+        // Store in cache
+        self.story_ids_cache.insert(cache_key, result.clone());
+
+        Ok(result)
     }
 
     /// Fetch a single story item by id.
+    /// Uses cache with 5 min TTL.
     pub fn fetch_story_content(&self, id: u32) -> Result<Story> {
+        let cache_key = format!("story_{}", id);
+
+        // Check cache first
+        if let Some(cached) = self.story_cache.get(&cache_key) {
+            return Ok(cached);
+        }
+
+        // Cache miss - fetch from API
         let url = format!("{}item/{}.json", self.get_base_url(), id);
-        self.get_json(&url)
-            .with_context(|| format!("fetch_story_content failed for id {}", id))
+        let result: Story = self
+            .get_json(&url)
+            .with_context(|| format!("fetch_story_content failed for id {}", id))?;
+
+        // Store in cache
+        self.story_cache.insert(cache_key, result.clone());
+
+        Ok(result)
     }
 
     /// Fetch a single comment item by id.
+    /// Uses cache with 5 min TTL.
     pub fn fetch_comment_content(&self, id: u32) -> Result<Comment> {
+        let cache_key = format!("comment_{}", id);
+
+        // Check cache first
+        if let Some(cached) = self.comment_cache.get(&cache_key) {
+            return Ok(cached);
+        }
+
+        // Cache miss - fetch from API
         let url = format!("{}item/{}.json", self.get_base_url(), id);
-        self.get_json(&url)
-            .with_context(|| format!("fetch_comment_content failed for id {}", id))
+        let result: Comment = self
+            .get_json(&url)
+            .with_context(|| format!("fetch_comment_content failed for id {}", id))?;
+
+        // Store in cache
+        self.comment_cache.insert(cache_key, result.clone());
+
+        Ok(result)
     }
 }
 

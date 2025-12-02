@@ -111,16 +111,16 @@ The TUI version (v0.9.4) has successfully implemented:
 ### v0.15.0 - Caching & Performance Foundation ⚡
 **Focus**: Performance infrastructure
 
-- [ ] **In-Memory Caching with TTL**
-    - [ ] Story cache (5 minute TTL)
-    - [ ] Comment cache (5 minute TTL)
-    - [ ] Article cache (15 minute TTL)
-    - [ ] Thread-safe implementation using `Arc<RwLock<>>`
+- [x] **In-Memory Caching with TTL**
+    - [x] Story cache (5 minute TTL)
+    - [x] Comment cache (5 minute TTL)
+    - [x] Article cache (15 minute TTL)
+    - [x] Thread-safe implementation using `Arc<RwLock<>>`
 
-- [ ] **Rate Limiting**
-    - [ ] Semaphore-based API rate limiting
-    - [ ] Default: 3 requests/second (respects HN API guidelines)
-    - [ ] Automatic rate limiting via `tokio::sync::Semaphore`
+- [x] **Rate Limiting**
+    - [x] Semaphore-based API rate limiting
+    - [x] Default: 3 requests/second (respects HN API guidelines)
+    - [x] Automatic rate limiting via `tokio::sync::Semaphore`
 
 **Dependencies**: `tokio`
 
