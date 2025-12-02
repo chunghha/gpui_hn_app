@@ -203,6 +203,7 @@ Recommended helper tasks (see `Taskfile.yml` in the project root):
 | `B` | View bookmarks |
 | `H` | View history |
 | `X` | Clear history (in history view) |
+| `t` | Open theme editor |
 | `Esc` | Go back / Close webview |
 | `Cmd+Q` (Mac) / `Ctrl+Q` (Windows/Linux) | Quit application |
 | `Ctrl+R` | Focus search bar (supports Regex) |

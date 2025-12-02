@@ -1,5 +1,5 @@
 use crate::state::ViewMode;
-use gpui::{Context, KeyDownEvent};
+use gpui::{AppContext, Context, KeyDownEvent};
 
 /// Scroll step size in pixels for j/k navigation
 const SCROLL_STEP: f32 = 50.0;
@@ -8,7 +8,7 @@ const SCROLL_STEP: f32 = 50.0;
 pub fn handle_key_down(
     viewer: &mut crate::internal::layout::HnLayout,
     event: &KeyDownEvent,
-    _window: &mut gpui::Window,
+    window: &mut gpui::Window,
     cx: &mut Context<crate::internal::layout::HnLayout>,
 ) {
     let key = event.keystroke.key.as_str();
@@ -64,7 +64,7 @@ pub fn handle_key_down(
         crate::config::Action::Back => {
             let view_mode = app_state.view_mode.clone();
             match view_mode {
-                ViewMode::Bookmarks | ViewMode::History => {
+                ViewMode::Bookmarks | ViewMode::History | ViewMode::ThemeEditor => {
                     tracing::debug!("Back action - returning to List view");
                     crate::state::AppState::show_stories(viewer.app_state.clone(), cx);
                     cx.notify();
@@ -128,8 +128,8 @@ pub fn handle_key_down(
                         view.scroll_by(SCROLL_STEP);
                     });
                 }
-                ViewMode::Webview(_) => {
-                    // WebView handles its own scrolling
+                ViewMode::Webview(_) | ViewMode::ThemeEditor => {
+                    // WebView and ThemeEditor handle their own scrolling
                 }
             }
             cx.notify();
@@ -158,8 +158,8 @@ pub fn handle_key_down(
                         view.scroll_by(-SCROLL_STEP);
                     });
                 }
-                ViewMode::Webview(_) => {
-                    // WebView handles its own scrolling
+                ViewMode::Webview(_) | ViewMode::ThemeEditor => {
+                    // WebView and ThemeEditor handle their own scrolling
                 }
             }
             cx.notify();
@@ -188,8 +188,8 @@ pub fn handle_key_down(
                         view.scroll_to_top();
                     });
                 }
-                ViewMode::Webview(_) => {
-                    // WebView handles its own scrolling
+                ViewMode::Webview(_) | ViewMode::ThemeEditor => {
+                    // WebView and ThemeEditor handle their own scrolling
                 }
             }
             cx.notify();
@@ -233,6 +233,21 @@ pub fn handle_key_down(
         }
         crate::config::Action::None => {
             // Do nothing
+        }
+        crate::config::Action::OpenThemeEditor => {
+            tracing::info!("Opening theme editor");
+            // Re-initialize theme editor to pick up current theme colors
+            viewer.theme_editor_view = cx
+                .new(|cx| crate::internal::ui::ThemeEditorView::new(viewer.app_state.clone(), cx));
+
+            viewer.theme_editor_view.update(cx, |view, _cx| {
+                window.focus(&view.focus_handle);
+            });
+
+            viewer.app_state.update(cx, |state, cx| {
+                state.view_mode = ViewMode::ThemeEditor;
+                cx.notify();
+            });
         }
     }
 }

@@ -1,6 +1,6 @@
 # GPUI Hacker News App - Development Roadmap
 
-> **Current Version**: v0.18.0  
+> **Current Version**: v0.19.0  
 > **Target**: v1.0.0 (Feature-complete GPUI port)
 
 This roadmap is inspired by the feature-complete TUI implementation (`tui-hn-app`) and outlines features to port to the GPUI version (`gpui_hn_app`).
@@ -182,10 +182,11 @@ The TUI version (v0.9.4) has successfully implemented:
 
 ### v0.19.0 - Theme System Enhancements 🎨
 **Focus**: Advanced theming
+**Status**: 🚧 Partial (2/5 complete)
 
-- [ ] **Theme Enhancements**
-    - [ ] Interactive theme editor with real-time preview
-    - [ ] RGB sliders for color adjustment
+- [/] **Theme Enhancements**
+    - [x] Interactive theme editor with real-time preview
+    - [x] RGB sliders for color adjustment
     - [ ] Export custom themes to JSON
     - [ ] Auto-discovery from configured theme directory
     - [ ] Theme naming with auto-complementary generation

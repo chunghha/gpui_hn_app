@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.19.0] - 2025-12-03
+
+### Added - Theme Editor (Partial Implementation)
+- **Interactive Theme Editor** (Core UI):
+  - Open with `t` key to access theme customization
+  - RGB sliders for background, foreground, and accent colors
+  - Real-time color preview panel showing changes
+  - Visual color swatches with hex values
+  - Live preview area demonstrating theme appearance
+
+### Planned (Not Yet Implemented)
+- Export custom themes to JSON (UI placeholder exists)
+- Auto-discovery from configured theme directory
+- Theme naming with auto-complementary generation
+
 ## [0.18.0] - 2025-12-02
 
 ### Added - Configuration & Customization

@@ -1,7 +1,7 @@
 use crate::api::StoryListType;
 use crate::internal::ui::{
-    BookmarkListView, HistoryListView, StoryDetailView, StoryListView, render_header,
-    render_webview_controls,
+    BookmarkListView, HistoryListView, StoryDetailView, StoryListView, ThemeEditorView,
+    render_header, render_webview_controls,
 };
 use crate::state::{AppState, ViewMode};
 use gpui::{prelude::*, *};
@@ -20,8 +20,9 @@ pub struct HnLayout {
     focus_handle: FocusHandle,
     story_list_view: Entity<StoryListView>,
     story_detail_view: Entity<StoryDetailView>,
-    bookmark_list_view: Entity<BookmarkListView>,
-    history_list_view: Entity<HistoryListView>,
+    pub bookmark_list_view: Entity<BookmarkListView>,
+    pub history_list_view: Entity<HistoryListView>,
+    pub theme_editor_view: Entity<ThemeEditorView>,
 }
 
 impl HnLayout {
@@ -68,6 +69,8 @@ impl HnLayout {
         let focus_handle = cx.focus_handle();
         window.focus(&focus_handle);
 
+        let theme_editor_view = cx.new(|cx| ThemeEditorView::new(app_state.clone(), cx));
+
         Self {
             title: "Hacker News".into(),
             app_state,
@@ -80,6 +83,7 @@ impl HnLayout {
             story_detail_view,
             bookmark_list_view,
             history_list_view,
+            theme_editor_view,
         }
     }
     pub fn story_list_view(&self) -> Entity<StoryListView> {
@@ -194,6 +198,7 @@ impl Render for HnLayout {
                             colors,
                         ))
                 }
+                ViewMode::ThemeEditor => div().flex_1().child(self.theme_editor_view.clone()),
             })
             .when(loading, |this| {
                 this.child(

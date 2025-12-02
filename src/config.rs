@@ -18,6 +18,7 @@ pub enum Action {
     ShowBookmarks,
     ShowHistory,
     ClearHistory,
+    OpenThemeEditor,
     None,
 }
 
@@ -158,6 +159,7 @@ fn default_keybindings() -> KeyMap {
     map.insert("shift+b".to_string(), Action::ShowBookmarks);
     map.insert("shift+h".to_string(), Action::ShowHistory);
     map.insert("shift+x".to_string(), Action::ClearHistory);
+    map.insert("t".to_string(), Action::OpenThemeEditor);
     map
 }
 
@@ -201,8 +203,17 @@ impl AppConfig {
                 && let Ok(content) = fs::read_to_string(&path)
             {
                 match ron::from_str::<AppConfig>(&content) {
-                    Ok(config) => {
+                    Ok(mut config) => {
                         tracing::info!("Loaded config from {}", path.display());
+
+                        // Merge default keybindings
+                        // If a key is missing in user config, add the default one.
+                        // If user wants to unbind a key, they should map it to Action::None.
+                        let defaults = default_keybindings();
+                        for (key, action) in defaults {
+                            config.keybindings.entry(key).or_insert(action);
+                        }
+
                         return config;
                     }
                     Err(e) => {

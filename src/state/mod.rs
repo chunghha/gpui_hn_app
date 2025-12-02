@@ -17,6 +17,7 @@ mod imp {
         Webview(String),
         Bookmarks,
         History,
+        ThemeEditor,
     }
 
     #[derive(Clone, PartialEq, Debug, Copy)]
