@@ -1,6 +1,6 @@
 # GPUI Hacker News App - Development Roadmap
 
-> **Current Version**: v0.11.0  
+> **Current Version**: v0.18.0  
 > **Target**: v1.0.0 (Feature-complete GPUI port)
 
 This roadmap is inspired by the feature-complete TUI implementation (`tui-hn-app`) and outlines features to port to the GPUI version (`gpui_hn_app`).
@@ -160,21 +160,21 @@ The TUI version (v0.9.4) has successfully implemented:
 ### v0.18.0 - Configuration & Customization ⚙️
 **Focus**: User customization
 
-- [ ] **Key Binding Customization**
-    - [ ] Define custom keybindings via `config.ron`
-    - [ ] Global and per-view mode keybindings
-    - [ ] Hierarchical resolution (context-specific overrides global)
-    - [ ] Support for simple keys, special keys, and modifiers
+- [x] **Key Binding Customization**
+    - [x] Define custom keybindings via `config.ron`
+    - [x] Global and per-view mode keybindings
+    - [x] Hierarchical resolution (context-specific overrides global)
+    - [x] Support for simple keys, special keys, and modifiers
 
 - [ ] **Keybinding Conflict Detection**
     - [ ] Warn user if custom bindings conflict on startup
     - [ ] Display notifications for conflicts
     - [ ] Log conflict details
 
-- [ ] **UI Customization**
-    - [ ] Customizable padding (horizontal and vertical)
-    - [ ] Status bar format with tokens (`{mode}`, `{category}`, `{count}`, etc.)
-    - [ ] List view field visibility (show/hide score, comments, domain, age, author)
+- [x] **UI Customization**
+    - [x] Customizable padding (horizontal and vertical)
+    - [x] Status bar format with tokens (`{mode}`, `{category}`, `{count}`, etc.)
+    - [x] List view field visibility (show/hide score, comments, domain, age, author)
 
 **Dependencies**: `ron`
 

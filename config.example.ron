@@ -39,4 +39,30 @@
     // Window size in pixels (initial)
     window_width: 980.0,
     window_height: 720.0,
+
+    // UI customization options
+    ui: (
+        // Padding around window content (in pixels)
+        padding: 16.0,
+
+        // Status bar format - customize the text shown below the search bar
+        // Available tokens: {mode}, {category}, {count}, {sort}, {order}
+        // Example: "Mode: {mode} | {category} | {count} items | Sort: {sort} ({order})"
+        status_bar_format: "Mode: {mode} | {category} | {count} items | Sort: {sort} ({order})",
+
+        // List view items - which metadata to show for each story
+        // Available options: "score", "comments", "domain", "author", "age"
+        list_view_items: ["score", "comments", "domain", "author", "age"],
+    ),
+
+    // Custom keybindings - override default keyboard shortcuts
+    // Format: "key": Action or "modifier+key": Action
+    // Modifiers: ctrl, alt, shift, cmd
+    // Leave empty to use defaults
+    keybindings: {
+        // Example custom bindings (uncomment to use):
+        // "ctrl+j": ScrollDown,
+        // "ctrl+k": ScrollUp,
+        // "space": ScrollDown,
+    },
 )

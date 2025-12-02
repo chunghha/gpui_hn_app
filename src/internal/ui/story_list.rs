@@ -68,6 +68,8 @@ impl Render for StoryListView {
         let sort_order = app_state_read.sort_order;
         let regex_error = app_state_read.regex_error.clone();
         let should_focus = app_state_read.should_focus_search;
+        let ui_config = app_state_read.config.ui.clone();
+        let current_list = app_state_read.current_list;
         let _ = app_state_read; // Release borrow
 
         if should_focus {
@@ -79,6 +81,15 @@ impl Render for StoryListView {
         }
 
         let colors = cx.theme().colors;
+
+        // Format status bar text
+        let status_bar_text = ui_config
+            .status_bar_format
+            .replace("{mode}", &format!("{:?}", search_mode))
+            .replace("{category}", &format!("{}", current_list))
+            .replace("{count}", &format!("{}", stories.len()))
+            .replace("{sort}", &format!("{:?}", sort_option))
+            .replace("{order}", &format!("{:?}", sort_order));
 
         div()
             .flex()
@@ -212,13 +223,7 @@ impl Render for StoryListView {
                             .justify_between()
                             .text_xs()
                             .text_color(colors.foreground)
-                            .child(
-                                div()
-                                    .flex()
-                                    .gap_2()
-                                    .child(format!("Mode: {:?}", search_mode))
-                                    .child(format!("Sort: {:?} ({:?})", sort_option, sort_order)),
-                            )
+                            .child(div().flex().gap_2().child(status_bar_text))
                             .child(if let Some(err) = regex_error {
                                 div()
                                     .text_color(gpui::rgb(0xFF0000))
@@ -298,12 +303,27 @@ impl Render for StoryListView {
                                             story.url.clone(),
                                             story.score.unwrap_or(0),
                                             story.descendants.unwrap_or(0),
+                                            story.by.clone().unwrap_or_default(),
+                                            story.time.unwrap_or(0),
+                                            story
+                                                .url
+                                                .clone()
+                                                .map(|u| {
+                                                    u.replace("https://", "")
+                                                        .replace("http://", "")
+                                                        .split('/')
+                                                        .next()
+                                                        .unwrap_or("")
+                                                        .to_string()
+                                                })
+                                                .unwrap_or_default(),
                                             is_bookmarked,
                                             colors.background.into(),
                                             colors.foreground.into(),
                                             colors.foreground.into(),
                                             colors.border.into(),
                                             app_state_entity,
+                                            &ui_config.list_view_items,
                                         )
                                     }),
                                 )
@@ -354,12 +374,16 @@ fn story_item(
     url: Option<String>,
     score: u32,
     comments: u32,
+    author: String,
+    time: i64,
+    domain: String,
     is_bookmarked: bool,
     surface_color: gpui::Rgba,
     text_color: gpui::Rgba,
     meta_text_color: gpui::Rgba,
     border_color: gpui::Rgba,
     app_state: Entity<AppState>,
+    visible_fields: &[String],
 ) -> impl IntoElement {
     div()
         .flex()
@@ -394,22 +418,68 @@ fn story_item(
                         .gap_4()
                         .text_sm()
                         .text_color(meta_text_color)
-                        .child(
-                            div()
-                                .flex()
-                                .gap_1()
-                                .items_center()
-                                .child("⭐")
-                                .child(format!("{}", score)),
+                        .when(visible_fields.contains(&"score".to_string()), |this| {
+                            this.child(
+                                div()
+                                    .flex()
+                                    .gap_1()
+                                    .items_center()
+                                    .child("⭐")
+                                    .child(format!("{}", score)),
+                            )
+                        })
+                        .when(visible_fields.contains(&"comments".to_string()), |this| {
+                            this.child(
+                                div()
+                                    .flex()
+                                    .gap_1()
+                                    .items_center()
+                                    .child("💬")
+                                    .child(format!("{}", comments)),
+                            )
+                        })
+                        .when(
+                            visible_fields.contains(&"domain".to_string()) && !domain.is_empty(),
+                            |this| {
+                                this.child(
+                                    div()
+                                        .flex()
+                                        .gap_1()
+                                        .items_center()
+                                        .child("🔗")
+                                        .child(domain.clone()),
+                                )
+                            },
                         )
-                        .child(
-                            div()
-                                .flex()
-                                .gap_1()
-                                .items_center()
-                                .child("💬")
-                                .child(format!("{}", comments)),
-                        ),
+                        .when(visible_fields.contains(&"author".to_string()), |this| {
+                            this.child(
+                                div()
+                                    .flex()
+                                    .gap_1()
+                                    .items_center()
+                                    .child("👤")
+                                    .child(author.clone()),
+                            )
+                        })
+                        .when(visible_fields.contains(&"age".to_string()), |this| {
+                            // Simple relative time approximation
+                            let now = std::time::SystemTime::now()
+                                .duration_since(std::time::UNIX_EPOCH)
+                                .unwrap()
+                                .as_secs() as i64;
+                            let diff = now - time;
+                            let age = if diff < 60 {
+                                format!("{}s", diff)
+                            } else if diff < 3600 {
+                                format!("{}m", diff / 60)
+                            } else if diff < 86400 {
+                                format!("{}h", diff / 3600)
+                            } else {
+                                format!("{}d", diff / 86400)
+                            };
+
+                            this.child(div().flex().gap_1().items_center().child("🕒").child(age))
+                        }),
                 )
                 .when(is_bookmarked, |this| {
                     this.child(

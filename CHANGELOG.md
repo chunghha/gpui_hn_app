@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.18.0] - 2025-12-02
+
+### Added - Configuration & Customization
+- **Configurable Keybindings**:
+  - Define custom keybindings in `config.ron`
+  - Support for modifiers (Ctrl, Alt, Shift, Cmd)
+  - Context-aware keybinding resolution
+  - Default keybindings preserved with override capability
+- **UI Customization**:
+  - Customizable status bar format via `status_bar_format` config
+  - Configurable list view items (toggle visibility of score, comments, author, etc.)
+  - `UiConfig` struct added to `AppConfig`
+- **Internal Architecture**:
+  - Introduced `Action` enum to represent all application actions
+  - Refactored event handling to be data-driven instead of hardcoded strings
+
+### Changed
+- `handle_key_down` now resolves actions from `AppConfig` before executing
+- Status bar rendering now uses the configured format string
+- Story list item rendering now respects `list_view_items` configuration
+
 ## [0.17.0] - 2025-12-02
 
 ### Added - Rendering Optimizations

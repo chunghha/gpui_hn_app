@@ -224,6 +224,8 @@ mod tests {
             soft_wrap_max_run: 20,
             window_width: 980.0,
             window_height: 720.0,
+            keybindings: Default::default(),
+            ui: Default::default(),
         }
     }
 

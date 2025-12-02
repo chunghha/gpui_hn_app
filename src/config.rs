@@ -3,6 +3,64 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq, Hash)]
+pub enum Action {
+    Quit,
+    Back,
+    FocusSearch,
+    CycleSearchMode,
+    CycleSortOption,
+    ToggleSortOrder,
+    ScrollDown,
+    ScrollUp,
+    ScrollToTop,
+    ToggleBookmark,
+    ShowBookmarks,
+    ShowHistory,
+    ClearHistory,
+    None,
+}
+
+pub type KeyMap = std::collections::HashMap<String, Action>;
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct UiConfig {
+    #[serde(default = "default_padding")]
+    pub padding: f32,
+    #[serde(default = "default_status_bar_format")]
+    pub status_bar_format: String,
+    #[serde(default = "default_list_view_items")]
+    pub list_view_items: Vec<String>,
+}
+
+fn default_padding() -> f32 {
+    16.0
+}
+
+fn default_status_bar_format() -> String {
+    "{mode} | {category} | {count} items".to_string()
+}
+
+fn default_list_view_items() -> Vec<String> {
+    vec![
+        "score".to_string(),
+        "comments".to_string(),
+        "domain".to_string(),
+        "age".to_string(),
+        "author".to_string(),
+    ]
+}
+
+impl Default for UiConfig {
+    fn default() -> Self {
+        Self {
+            padding: default_padding(),
+            status_bar_format: default_status_bar_format(),
+            list_view_items: default_list_view_items(),
+        }
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct AppConfig {
     pub font_sans: String,
@@ -40,6 +98,12 @@ pub struct AppConfig {
     /// Window height in pixels
     #[serde(default = "default_window_height")]
     pub window_height: f32,
+    /// Keybindings
+    #[serde(default = "default_keybindings")]
+    pub keybindings: KeyMap,
+    /// UI Customization
+    #[serde(default)]
+    pub ui: UiConfig,
 }
 
 fn default_webview_theme_injection() -> String {
@@ -79,6 +143,24 @@ fn default_theme_file() -> String {
     "./themes".to_string()
 }
 
+fn default_keybindings() -> KeyMap {
+    let mut map = std::collections::HashMap::new();
+    map.insert("q".to_string(), Action::Quit);
+    map.insert("escape".to_string(), Action::Back);
+    map.insert("ctrl+r".to_string(), Action::FocusSearch);
+    map.insert("ctrl+m".to_string(), Action::CycleSearchMode);
+    map.insert("ctrl+s".to_string(), Action::CycleSortOption);
+    map.insert("o".to_string(), Action::ToggleSortOrder);
+    map.insert("j".to_string(), Action::ScrollDown);
+    map.insert("k".to_string(), Action::ScrollUp);
+    map.insert("g".to_string(), Action::ScrollToTop);
+    map.insert("b".to_string(), Action::ToggleBookmark);
+    map.insert("shift+b".to_string(), Action::ShowBookmarks);
+    map.insert("shift+h".to_string(), Action::ShowHistory);
+    map.insert("shift+x".to_string(), Action::ClearHistory);
+    map
+}
+
 impl Default for AppConfig {
     fn default() -> Self {
         Self {
@@ -93,6 +175,8 @@ impl Default for AppConfig {
             soft_wrap_max_run: default_soft_wrap_max_run(),
             window_width: 980.0,
             window_height: 720.0,
+            keybindings: default_keybindings(),
+            ui: UiConfig::default(),
         }
     }
 }

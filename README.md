@@ -138,6 +138,11 @@ Note: copy `config.example.ron` to `config.ron` and edit values as needed.
 - `soft_wrap_max_run`: Maximum run length before inserting soft-wrap characters to prevent overflow in markdown rendering. Set to `0` to disable soft-wrapping (default: `20`).
 - `window_width`: Window width in pixels (default: `980.0`)
 - `window_height`: Window height in pixels (default: `720.0`)
+- `keybindings`: Map of key combinations to actions (e.g., `"ctrl+j": "ScrollDown"`). See `src/config.rs` for available actions.
+- `ui`: UI customization settings:
+  - `padding`: Window padding (default: `16.0`)
+  - `status_bar_format`: Format string for status bar (default: `"Mode: {mode} | {category} | {count} items | Sort: {sort} ({order})"`)
+  - `list_view_items`: List of fields to show in story list (default: `["score", "comments", "domain", "author", "age"]`)
 
 ## Internal UI components
 
