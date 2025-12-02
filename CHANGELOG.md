@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.14.0] - 2025-12-02
+
+### Added
+- **Article Rendering**:
+  - Syntax highlighting for code blocks using `syntect`
+  - Support for multiple programming languages (Rust, Python, JavaScript, etc.)
+  - Base16 Ocean Dark theme for code highlighting
+- **Story Metadata Display**:
+  - Domain extraction from URLs (e.g., "github.com")
+  - Two-line metadata layout for better visual hierarchy
+  - Relative time display ("2h ago", "3d ago")
+  - Enhanced title wrapping with indentation
+  - "View Article" link button instead of full URL display
+- **Utilities**:
+  - `utils::url::extract_domain()` for extracting domains from URLs
+  - `utils::datetime::format_relative_time()` for cleaner API
+
+### Dependencies
+- Added `syntect = "5.3.0"` for syntax highlighting
+- Added `scraper = "0.24.0"` for HTML parsing (future use)
+- Added `textwrap = "0.16.2"` for text utilities (future use)
+
 ## [0.13.0] - 2025-12-02
 
 ### Added
@@ -32,11 +54,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Ascending/Descending order toggle
   - Visual sort status indicator
 - **Keyboard Shortcuts**:
-  - `Ctrl+R`: Focus search bar.
-  - `Ctrl+M`: Cycle search modes.
-  - `Ctrl+S`: Cycle sort options.
-  - `O`: Toggle sort order.
-  - `Up`/`Down`: Navigate search history.
+  - `Ctrl+R`: Focus search bar
+  - `Ctrl+M`: Cycle search modes
+  - `Ctrl+S`: Cycle sort options
+  - `O`: Toggle sort order
+  - `Up`/`Down`: Navigate search history
 
 ### Dependencies
 - Added `regex = "1.10.0"`

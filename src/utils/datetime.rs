@@ -35,6 +35,11 @@ pub fn format_timestamp(timestamp: &i64) -> String {
     "just now".to_string()
 }
 
+/// Alias for format_timestamp for clearer naming
+pub fn format_relative_time(timestamp: i64) -> String {
+    format_timestamp(&timestamp)
+}
+
 #[cfg(test)]
 mod tests {
     use super::format_timestamp;

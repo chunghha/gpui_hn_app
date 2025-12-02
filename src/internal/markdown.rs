@@ -92,7 +92,16 @@ fn render_node<'a>(
         }
         NodeValue::CodeBlock(code_block) => {
             let code = code_block.literal.clone();
+            let lang = code_block.info.clone();
 
+            // Try to syntax highlight if language is specified
+            if !lang.is_empty()
+                && let Some(highlighted) = syntax_highlight(&code, &lang, style)
+            {
+                return Some(highlighted.into_any_element());
+            }
+
+            // Fallback to plain code block
             Some(
                 div()
                     .bg(style.code_bg_color)
@@ -314,6 +323,53 @@ fn collect_text_recursive<'a>(node: &'a AstNode<'a>, text: &mut String) {
             }
         }
     }
+}
+
+fn syntax_highlight(code: &str, lang: &str, style: &MarkdownStyle) -> Option<gpui::Div> {
+    use syntect::easy::HighlightLines;
+    use syntect::highlighting::ThemeSet;
+    use syntect::parsing::SyntaxSet;
+    use syntect::util::LinesWithEndings;
+
+    let ps = SyntaxSet::load_defaults_newlines();
+    let ts = ThemeSet::load_defaults();
+
+    // Use a dark theme for syntax highlighting
+    let theme = &ts.themes["base16-ocean.dark"];
+
+    let syntax = ps.find_syntax_by_token(lang)?;
+    let mut h = HighlightLines::new(syntax, theme);
+
+    let mut container = div()
+        .bg(style.code_bg_color)
+        .rounded_md()
+        .p_3()
+        .my_2()
+        .font_family(style.font_mono.clone())
+        .text_sm()
+        .flex()
+        .flex_col();
+
+    for line in LinesWithEndings::from(code) {
+        let ranges = h.highlight_line(line, &ps).ok()?;
+        let mut line_div = div().flex().flex_wrap();
+
+        for (style_range, text) in ranges {
+            let fg = style_range.foreground;
+            let color = gpui::Hsla {
+                h: 0.0,
+                s: 0.0,
+                l: fg.r as f32 / 255.0,
+                a: fg.a as f32 / 255.0,
+            };
+
+            line_div = line_div.child(div().text_color(color).child(text.to_string()));
+        }
+
+        container = container.child(line_div);
+    }
+
+    Some(container)
 }
 
 #[cfg(test)]

@@ -176,25 +176,47 @@ fn render_story_header(
     config: &crate::config::AppConfig,
     app_state: Entity<AppState>,
 ) -> impl IntoElement {
+    // Extract domain from URL if available
+    let domain = story
+        .url
+        .as_ref()
+        .and_then(|url| crate::utils::url::extract_domain(url));
+
     div()
         .flex()
         .flex_col()
         .gap_2()
+        // Title row with optional domain
         .child(
             div()
                 .w_full()
                 .flex()
-                .flex_row()
-                .flex_wrap()
-                .text_3xl()
-                .font_weight(gpui::FontWeight::BOLD)
-                .text_color(colors.foreground)
-                .child(div().flex().flex_wrap().child(soft_wrap(
-                    &story.title.clone().unwrap_or_default(),
-                    config.soft_wrap_max_run,
-                ))),
+                .flex_col()
+                .gap_1()
+                .child(
+                    div()
+                        .w_full()
+                        .flex()
+                        .flex_row()
+                        .flex_wrap()
+                        .text_3xl()
+                        .font_weight(gpui::FontWeight::BOLD)
+                        .text_color(colors.foreground)
+                        .child(div().flex().flex_wrap().child(soft_wrap(
+                            &story.title.clone().unwrap_or_default(),
+                            config.soft_wrap_max_run,
+                        ))),
+                )
+                .when_some(domain, |this, domain_str| {
+                    this.child(
+                        div()
+                            .text_sm()
+                            .text_color(colors.foreground.opacity(0.6))
+                            .child(format!("({})", domain_str)),
+                    )
+                }),
         )
-        // Metadata row
+        // Metadata row - first line
         .child(
             div()
                 .flex()
@@ -207,7 +229,7 @@ fn render_story_header(
                         .gap_1()
                         .items_center()
                         .child("⭐")
-                        .child(format!("{}", story.score.unwrap_or(0))),
+                        .child(format!("{} points", story.score.unwrap_or(0))),
                 )
                 .child(
                     div()
@@ -217,35 +239,35 @@ fn render_story_header(
                         .child("👤")
                         .child(story.by.clone().unwrap_or_default()),
                 )
-                .when_some(story.time, |this, time| {
-                    this.child(
-                        div()
-                            .flex()
-                            .gap_1()
-                            .items_center()
-                            .child("🕒")
-                            .child(crate::utils::datetime::format_timestamp(&time)),
-                    )
-                })
                 .child(
                     div()
                         .flex()
                         .gap_1()
                         .items_center()
                         .child("💬")
-                        .child(format!("{}", story.descendants.unwrap_or(0))),
+                        .child(format!("{} comments", story.descendants.unwrap_or(0))),
                 ),
         )
-        // Story URL if available
+        // Metadata row - second line (time)
+        .when_some(story.time, |this, time| {
+            this.child(
+                div()
+                    .text_sm()
+                    .text_color(colors.foreground.opacity(0.7))
+                    .child(crate::utils::datetime::format_relative_time(time)),
+            )
+        })
+        // Story URL if available (clickable)
         .when_some(story.url.clone(), |this, url| {
             let app_state_entity = app_state.clone();
             let url_clone = url.clone();
             this.child(
                 div()
-                    .text_lg()
+                    .text_sm()
                     .text_color(colors.info)
                     .cursor_pointer()
-                    .child(soft_wrap(&url, config.soft_wrap_max_run))
+                    .underline()
+                    .child("View Article")
                     .on_mouse_down(MouseButton::Left, move |_, _w, cx| {
                         AppState::show_webview(app_state_entity.clone(), url_clone.clone(), cx);
                     }),

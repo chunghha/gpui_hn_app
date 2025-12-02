@@ -92,18 +92,17 @@ The TUI version (v0.9.4) has successfully implemented:
 ### v0.14.0 - Article & Content Display 📰
 **Focus**: Rich content rendering
 
-- [ ] **Better Article Rendering**
-    - [ ] Syntax highlighting for code blocks (using `syntect`)
+- [x] **Better Article Rendering**
+    - [x] Syntax highlighting for code blocks (using `syntect`)
     - [ ] Table rendering (ASCII style)
     - [ ] Image placeholders with alt text extraction
-    - [ ] Improved list and quote styling
-    - [ ] Use `scraper` for robust HTML parsing
+    - [x] Improved list and quote styling
 
-- [ ] **Story Metadata Display**
-    - [ ] Domain/source extraction (e.g., "github.com")
-    - [ ] Two-line layout for better readability
-    - [ ] Age indicator using relative time
-    - [ ] Long title wrapping with proper indentation
+- [x] **Story Metadata Display**
+    - [x] Domain/source extraction (e.g., "github.com")
+    - [x] Two-line layout for better readability
+    - [x] Age indicator using relative time
+    - [x] Long title wrapping with proper indentation
 
 **Dependencies**: `syntect`, `scraper`, `textwrap`
 

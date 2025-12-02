@@ -2,7 +2,7 @@ mod imp {
     use crate::api::{ApiService, StoryListType};
     use crate::bookmarks::Bookmarks;
     use crate::history::History;
-    use crate::internal::models::{Comment, Story};
+    use crate::internal::models::{CommentViewModel, Story};
     use crate::search::SearchHistory;
     use crate::utils::html::extract_text_from_html;
     use futures::StreamExt;
@@ -49,7 +49,7 @@ mod imp {
         pub view_mode: ViewMode,
         pub selected_story_content: Option<String>,
         pub selected_story_content_loading: bool,
-        pub comments: Vec<Comment>,
+        pub comments: Vec<CommentViewModel>,
         pub comments_loading: bool,
         pub loaded_comment_count: usize,
         pub comment_ids: Vec<u32>,
@@ -393,7 +393,7 @@ mod imp {
                 cx.notify();
             });
 
-            let (tx, mut rx) = mpsc::unbounded::<Vec<Comment>>();
+            let (tx, mut rx) = mpsc::unbounded::<Vec<CommentViewModel>>();
             let background = cx.background_executor().clone();
             let foreground = cx.foreground_executor().clone();
             let mut async_cx = cx.to_async();
@@ -418,21 +418,45 @@ mod imp {
             // Background task to fetch comments
             background
                 .spawn(async move {
-                    let mut comments = Vec::new();
-                    // Fetch top-level comments (limit to first 20 to avoid overwhelming)
-                    for id in comment_ids.into_iter().take(20) {
-                        match api_service.fetch_comment_content(id) {
-                            Ok(comment) => {
-                                comments.push(comment);
-                            }
-                            Err(e) => {
-                                tracing::error!("Failed to fetch comment {}: {}", id, e);
-                            }
-                        }
-                    }
+                    let comments = Self::fetch_comments_recursive(
+                        &api_service,
+                        comment_ids.into_iter().take(20).collect(),
+                        0,
+                        3,
+                    );
                     let _ = tx.unbounded_send(comments);
                 })
                 .detach();
+        }
+
+        fn fetch_comments_recursive(
+            api: &ApiService,
+            ids: Vec<u32>,
+            depth: u32,
+            max_depth: u32,
+        ) -> Vec<CommentViewModel> {
+            let mut results = Vec::new();
+            for id in ids {
+                if let Ok(comment) = api.fetch_comment_content(id) {
+                    let kids = comment.kids.clone();
+                    results.push(CommentViewModel {
+                        id: comment.id,
+                        comment: comment.clone(),
+                        depth,
+                        collapsed: false,
+                        loading: false,
+                    });
+
+                    if depth < max_depth
+                        && let Some(kids_ids) = kids
+                    {
+                        let children =
+                            Self::fetch_comments_recursive(api, kids_ids, depth + 1, max_depth);
+                        results.extend(children);
+                    }
+                }
+            }
+            results
         }
 
         pub fn fetch_more_comments(entity: Entity<Self>, cx: &mut App) {
@@ -456,7 +480,7 @@ mod imp {
             });
 
             if let Some(api_service) = api_service {
-                let (tx, mut rx) = mpsc::unbounded::<Vec<Comment>>();
+                let (tx, mut rx) = mpsc::unbounded::<Vec<CommentViewModel>>();
                 let background = cx.background_executor().clone();
                 let foreground = cx.foreground_executor().clone();
                 let mut async_cx = cx.to_async();
@@ -481,17 +505,12 @@ mod imp {
                 // Background task to fetch comments
                 background
                     .spawn(async move {
-                        let mut comments = Vec::new();
-                        for id in comment_ids_to_fetch {
-                            match api_service.fetch_comment_content(id) {
-                                Ok(comment) => {
-                                    comments.push(comment);
-                                }
-                                Err(e) => {
-                                    tracing::warn!("Failed to fetch comment {}: {}", id, e);
-                                }
-                            }
-                        }
+                        let comments = Self::fetch_comments_recursive(
+                            &api_service,
+                            comment_ids_to_fetch,
+                            0,
+                            3,
+                        );
                         let _ = tx.unbounded_send(comments);
                     })
                     .detach();
