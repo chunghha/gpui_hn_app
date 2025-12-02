@@ -39,21 +39,20 @@ pub fn hsla_to_hex(color: Hsla) -> String {
 /// - "FlexokiDark" -> (no standalone token) -> "FlexokiDark Light" or "... Dark" depending on runtime hint
 /// - "Darkness Dark" -> "Darkness Light" (only the standalone token replaced)
 pub fn toggle_dark_light(theme_name: &str, runtime_is_dark: Option<bool>) -> String {
-    // Try to replace a standalone "Dark" (case-insensitive) while preserving simple casing.
-    if let Some(replaced) = replace_first_standalone_token(theme_name, "Dark", "Light") {
-        return replaced;
-    }
-
-    // Try to replace a standalone "Light".
-    if let Some(replaced) = replace_first_standalone_token(theme_name, "Light", "Dark") {
-        return replaced;
-    }
-
-    // No standalone token found; append based on runtime hint.
-    // No standalone token found; append based on runtime hint.
-    match runtime_is_dark.unwrap_or(false) {
-        true => format!("{} Light", theme_name),
-        false => format!("{} Dark", theme_name),
+    // Try to replace a standalone "Dark" or "Light" token
+    match (
+        replace_first_standalone_token(theme_name, "Dark", "Light"),
+        replace_first_standalone_token(theme_name, "Light", "Dark"),
+    ) {
+        (Some(replaced), _) => replaced,
+        (None, Some(replaced)) => replaced,
+        (None, None) => {
+            // No standalone token found; append based on runtime hint
+            match runtime_is_dark.unwrap_or(false) {
+                true => format!("{} Light", theme_name),
+                false => format!("{} Dark", theme_name),
+            }
+        }
     }
 }
 

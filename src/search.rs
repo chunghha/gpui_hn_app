@@ -23,12 +23,11 @@ impl SearchHistory {
         history
     }
 
-    #[allow(clippy::collapsible_if)]
     pub fn load(&mut self) {
-        if let Ok(content) = fs::read_to_string(&self.file_path) {
-            if let Ok(loaded) = serde_json::from_str::<VecDeque<String>>(&content) {
-                self.history = loaded;
-            }
+        if let Ok(content) = fs::read_to_string(&self.file_path)
+            && let Ok(loaded) = serde_json::from_str::<VecDeque<String>>(&content)
+        {
+            self.history = loaded;
         }
     }
 

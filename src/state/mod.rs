@@ -7,7 +7,7 @@ mod imp {
     use crate::utils::html::extract_text_from_html;
     use futures::StreamExt;
     use futures::channel::mpsc;
-    use gpui::{App, Entity, prelude::*};
+    use gpui::{App, Entity, Task, prelude::*};
     use std::sync::Arc;
 
     #[derive(Clone, PartialEq, Debug)]
@@ -65,6 +65,8 @@ mod imp {
         pub sort_order: SortOrder,
         pub regex_error: Option<String>,
         pub should_focus_search: bool,
+        pub fetch_task: Option<Task<()>>,
+        pub comment_fetch_task: Option<Task<()>>,
     }
 
     impl AppState {
@@ -110,13 +112,19 @@ mod imp {
                 sort_order: SortOrder::Descending,
                 regex_error: None,
                 should_focus_search: false,
+                fetch_task: None,
+                comment_fetch_task: None,
             })
         }
 
         pub fn fetch_stories(entity: Entity<Self>, list_type: StoryListType, cx: &mut App) {
             tracing::info!("Fetching story IDs for: {}", list_type);
             let api_service = entity.read(cx).api_service.clone();
+
+            // Cancel any existing fetch task
             entity.update(cx, |state, cx| {
+                state.fetch_task = None;
+
                 tracing::info!("List type changed, resetting state.");
                 state.loading = true;
                 state.loading_more = false;
@@ -129,47 +137,47 @@ mod imp {
             });
 
             let (tx, mut rx) = mpsc::unbounded::<Vec<u32>>();
-            let background = cx.background_executor().clone();
-            let foreground = cx.foreground_executor().clone();
+
+            let entity_clone = entity.clone();
             let mut async_cx = cx.to_async();
+            let background = cx.background_executor().clone();
 
-            // Spawn foreground task to receive IDs
-            foreground
-                .spawn({
-                    let entity = entity.clone();
-                    async move {
-                        if let Some(ids) = rx.next().await {
-                            let _ = entity.update(&mut async_cx, |state, cx| {
-                                state.story_ids = ids;
-                                // Initial fetch of first batch
-                                cx.notify();
-                            });
-                            // Trigger fetching the first batch
-                            Self::fetch_more_stories(entity, &mut async_cx).await;
-                        }
-                    }
-                })
-                .detach();
+            // Create a new task for fetching IDs and then the first batch of stories
+            let task = cx.foreground_executor().spawn(async move {
+                // Fetch IDs in background
+                let ids_result = background
+                    .spawn(async move { api_service.fetch_story_ids(list_type) })
+                    .await;
 
-            // Spawn background task to fetch IDs
-            background
-                .spawn(async move {
-                    match api_service.fetch_story_ids(list_type) {
-                        Ok(ids) => {
-                            tracing::info!(
-                                "Successfully fetched {} story IDs for: {}",
-                                ids.len(),
-                                list_type
-                            );
-                            let _ = tx.unbounded_send(ids);
-                        }
-                        Err(e) => {
-                            tracing::error!("Failed to fetch story ids: {}", e);
-                            let _ = tx.unbounded_send(Vec::new());
-                        }
+                match ids_result {
+                    Ok(ids) => {
+                        tracing::info!(
+                            "Successfully fetched {} story IDs for: {}",
+                            ids.len(),
+                            list_type
+                        );
+                        let _ = tx.unbounded_send(ids);
                     }
-                })
-                .detach();
+                    Err(e) => {
+                        tracing::error!("Failed to fetch story ids: {}", e);
+                        let _ = tx.unbounded_send(Vec::new());
+                    }
+                }
+
+                // Wait for IDs and trigger first batch fetch
+                if let Some(ids) = rx.next().await {
+                    let _ = entity_clone.update(&mut async_cx, |state, cx| {
+                        state.story_ids = ids;
+                        cx.notify();
+                    });
+                    // Trigger fetching the first batch
+                    Self::fetch_more_stories(entity_clone, &mut async_cx).await;
+                }
+            });
+
+            entity.update(cx, |state, _| {
+                state.fetch_task = Some(task);
+            });
         }
 
         pub async fn fetch_more_stories(entity: Entity<Self>, cx: &mut gpui::AsyncApp) {
@@ -200,54 +208,29 @@ mod imp {
                 .unwrap_or((None, Vec::new(), 0));
 
             if let Some(api_service) = api_service {
-                let (tx, mut rx) = mpsc::unbounded::<Vec<Story>>();
-                let ids_clone = ids_to_fetch.clone();
+                let ids_count = ids_to_fetch.len();
+                tracing::info!("Fetching {} story details concurrently...", ids_count);
 
-                cx.background_executor()
-                    .spawn(async move {
-                        tracing::info!("Fetching {} story details...", ids_to_fetch.len());
-                        let mut stories = Vec::new();
-                        let mut failed_count = 0;
+                // Use concurrent fetch
+                let stories = cx
+                    .background_executor()
+                    .spawn(async move { api_service.fetch_stories_concurrent(ids_to_fetch).await })
+                    .await;
 
-                        for id in ids_to_fetch {
-                            match api_service.fetch_story_content(id) {
-                                Ok(story) => stories.push(story),
-                                Err(e) => {
-                                    failed_count += 1;
-                                    tracing::warn!("Failed to fetch story {}: {}", id, e);
-                                }
-                            }
-                        }
+                let _ = entity.update(cx, |state, cx| {
+                    state.stories.extend(stories);
+                    // Increment loaded_count by the batch size (number of IDs attempted)
+                    state.loaded_count += batch_size;
+                    state.loading_more = false;
+                    state.loading = false;
 
-                        if failed_count > 0 {
-                            tracing::warn!(
-                                "Completed batch with {} failures out of {} attempts",
-                                failed_count,
-                                ids_clone.len()
-                            );
-                        }
+                    // Check if we've now loaded everything
+                    if state.loaded_count >= state.story_ids.len() {
+                        state.all_stories_loaded = true;
+                    }
 
-                        let _ = tx.unbounded_send(stories);
-                    })
-                    .detach();
-
-                if let Some(new_stories) = rx.next().await {
-                    let _ = entity.update(cx, |state, cx| {
-                        state.stories.extend(new_stories);
-                        // Increment loaded_count by the batch size (number of IDs attempted)
-                        // This ensures we don't get stuck even if some fetches fail
-                        state.loaded_count += batch_size;
-                        state.loading_more = false;
-                        state.loading = false;
-
-                        // Check if we've now loaded everything
-                        if state.loaded_count >= state.story_ids.len() {
-                            state.all_stories_loaded = true;
-                        }
-
-                        cx.notify();
-                    });
-                }
+                    cx.notify();
+                });
             }
         }
 
@@ -386,7 +369,10 @@ mod imp {
             };
 
             let api_service = entity.read(cx).api_service.clone();
+
+            // Cancel existing comment fetch
             entity.update(cx, |state, cx| {
+                state.comment_fetch_task = None;
                 state.comments_loading = true;
                 state.comment_ids = comment_ids.clone();
                 state.loaded_comment_count = 0;
@@ -394,66 +380,79 @@ mod imp {
             });
 
             let (tx, mut rx) = mpsc::unbounded::<Vec<CommentViewModel>>();
-            let background = cx.background_executor().clone();
-            let foreground = cx.foreground_executor().clone();
+
+            let entity_clone = entity.clone();
             let mut async_cx = cx.to_async();
+            let background = cx.background_executor().clone();
 
-            // Foreground task to receive comments
-            foreground
-                .spawn({
-                    let entity = entity.clone();
-                    async move {
-                        if let Some(comments) = rx.next().await {
-                            let _ = entity.update(&mut async_cx, |state, cx| {
-                                state.comments = comments;
-                                state.loaded_comment_count = 20.min(state.comment_ids.len());
-                                state.comments_loading = false;
-                                cx.notify();
-                            });
-                        }
-                    }
-                })
-                .detach();
+            let task = cx.foreground_executor().spawn(async move {
+                // Fetch first batch in background
+                let comments = background
+                    .spawn(async move {
+                        Self::fetch_comments_recursive(
+                            &api_service,
+                            comment_ids.into_iter().take(20).collect(),
+                            0,
+                            3,
+                        )
+                        .await
+                    })
+                    .await;
 
-            // Background task to fetch comments
-            background
-                .spawn(async move {
-                    let comments = Self::fetch_comments_recursive(
-                        &api_service,
-                        comment_ids.into_iter().take(20).collect(),
-                        0,
-                        3,
-                    );
-                    let _ = tx.unbounded_send(comments);
-                })
-                .detach();
+                let _ = tx.unbounded_send(comments);
+
+                if let Some(comments) = rx.next().await {
+                    let _ = entity_clone.update(&mut async_cx, |state, cx| {
+                        state.comments = comments;
+                        state.loaded_comment_count = 20.min(state.comment_ids.len());
+                        state.comments_loading = false;
+                        cx.notify();
+                    });
+                }
+            });
+
+            entity.update(cx, |state, _| {
+                state.comment_fetch_task = Some(task);
+            });
         }
 
-        fn fetch_comments_recursive(
+        async fn fetch_comments_recursive(
             api: &ApiService,
             ids: Vec<u32>,
             depth: u32,
             max_depth: u32,
         ) -> Vec<CommentViewModel> {
             let mut results = Vec::new();
-            for id in ids {
-                if let Ok(comment) = api.fetch_comment_content(id) {
-                    let kids = comment.kids.clone();
-                    results.push(CommentViewModel {
-                        id: comment.id,
-                        comment: comment.clone(),
-                        depth,
-                        collapsed: false,
-                        loading: false,
-                    });
 
-                    if depth < max_depth
-                        && let Some(kids_ids) = kids
-                    {
-                        let children =
-                            Self::fetch_comments_recursive(api, kids_ids, depth + 1, max_depth);
-                        results.extend(children);
-                    }
+            // Fetch comments concurrently
+            let comments = api.fetch_comments_concurrent(ids).await;
+
+            for comment in comments {
+                let kids = comment.kids.clone();
+                let vm = CommentViewModel {
+                    id: comment.id,
+                    comment: comment.clone(),
+                    depth,
+                    collapsed: false,
+                    loading: false,
+                };
+                results.push(vm);
+
+                if depth < max_depth
+                    && let Some(kids_ids) = kids
+                {
+                    // Recursively fetch children
+                    // Note: We could parallelize this too with join_all, but let's keep it simple for now
+                    // as the depth is limited and branching factor can be high.
+                    // Actually, since we are async, we can just await.
+                    let children = Box::pin(Self::fetch_comments_recursive(
+                        api,
+                        kids_ids,
+                        depth + 1,
+                        max_depth,
+                    ))
+                    .await;
+                    results.extend(children);
                 }
             }
             results
@@ -481,39 +480,34 @@ mod imp {
 
             if let Some(api_service) = api_service {
                 let (tx, mut rx) = mpsc::unbounded::<Vec<CommentViewModel>>();
-                let background = cx.background_executor().clone();
-                let foreground = cx.foreground_executor().clone();
+
+                let entity_clone = entity.clone();
                 let mut async_cx = cx.to_async();
+                let background = cx.background_executor().clone();
 
-                // Foreground task to receive comments
-                foreground
-                    .spawn({
-                        let entity = entity.clone();
-                        async move {
-                            if let Some(new_comments) = rx.next().await {
-                                let _ = entity.update(&mut async_cx, |state, cx| {
-                                    state.comments.extend(new_comments);
-                                    state.loaded_comment_count += batch_size;
-                                    state.comments_loading = false;
-                                    cx.notify();
-                                });
-                            }
-                        }
-                    })
-                    .detach();
+                let task = cx.foreground_executor().spawn(async move {
+                    let comments = background
+                        .spawn(async move {
+                            Self::fetch_comments_recursive(&api_service, comment_ids_to_fetch, 0, 3)
+                                .await
+                        })
+                        .await;
 
-                // Background task to fetch comments
-                background
-                    .spawn(async move {
-                        let comments = Self::fetch_comments_recursive(
-                            &api_service,
-                            comment_ids_to_fetch,
-                            0,
-                            3,
-                        );
-                        let _ = tx.unbounded_send(comments);
-                    })
-                    .detach();
+                    let _ = tx.unbounded_send(comments);
+
+                    if let Some(new_comments) = rx.next().await {
+                        let _ = entity_clone.update(&mut async_cx, |state, cx| {
+                            state.comments.extend(new_comments);
+                            state.loaded_comment_count += batch_size;
+                            state.comments_loading = false;
+                            cx.notify();
+                        });
+                    }
+                });
+
+                entity.update(cx, |state, _| {
+                    state.comment_fetch_task = Some(task);
+                });
             }
         }
         pub fn set_zoom_level(entity: Entity<Self>, zoom: u32, cx: &mut App) {

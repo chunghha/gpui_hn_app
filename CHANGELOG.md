@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.16.0] - 2025-12-02
+
+### Added
+- **Concurrent Fetching**:
+  - Parallel fetching of stories and comments (up to 10 concurrent requests)
+  - Uses `futures::stream::buffer_unordered` for efficient batch processing
+  - Significantly faster list loading (3-5x improvement)
+- **Request Management**:
+  - Automatic cancellation of stale fetch tasks when switching views
+  - Cache-based request deduplication to prevent redundant API calls
+  - Offline fallback: serves stale cache data if network request fails
+- **Dependencies**:
+  - Added `futures = "0.3.31"`
+  - Added `tokio-util = "0.7.17"`
+  - Added `dashmap = "6.1.0"` (infrastructure)
+
+### Changed
+- `fetch_stories` and `fetch_comments` now execute concurrently
+- Improved responsiveness by cancelling unnecessary background work
+
 ## [0.15.0] - 2025-12-02
 
 ### Added

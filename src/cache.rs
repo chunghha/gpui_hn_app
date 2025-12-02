@@ -37,6 +37,13 @@ impl<T: Clone> Cache<T> {
         }
     }
 
+    /// Get a value from the cache even if it has expired
+    pub fn get_stale(&self, key: &str) -> Option<T> {
+        let store = self.store.read().ok()?;
+        let entry = store.get(key)?;
+        Some(entry.value.clone())
+    }
+
     /// Insert a value into the cache with TTL
     pub fn insert(&self, key: String, value: T) {
         let entry = CacheEntry {

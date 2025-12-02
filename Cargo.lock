@@ -1597,6 +1597,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "dashmap"
+version = "6.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5041cc499144891f3790297212f32a74fb938e5136a14943f338ef9e0ae276cf"
+dependencies = [
+ "cfg-if",
+ "crossbeam-utils",
+ "hashbrown 0.14.5",
+ "lock_api",
+ "once_cell",
+ "parking_lot_core",
+]
+
+[[package]]
 name = "data-url"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2878,9 +2892,9 @@ dependencies = [
 
 [[package]]
 name = "gpui-component"
-version = "0.5.0-preview1"
+version = "0.5.0-preview2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a7a055d60be8c583a47d97ad2a1e2a1a209b6d18b2a0e99d2d964e1e700db7e0"
+checksum = "6b600febdc128afd24febf1bc4fa3a6b704e6d8521e67aa5e5a245117ff6a1b9"
 dependencies = [
  "aho-corasick",
  "anyhow",
@@ -2918,9 +2932,9 @@ dependencies = [
 
 [[package]]
 name = "gpui-component-macros"
-version = "0.5.0-preview1"
+version = "0.5.0-preview2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "087864659f5c2ca8c8f91c1c01d91f228a7416c13c4fb8a8329e3591e83340c9"
+checksum = "c73cc07eab9c69be8858f156043f635ba257ce5d28ddfb1b7586350bdeb918c4"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2929,10 +2943,11 @@ dependencies = [
 
 [[package]]
 name = "gpui-hn-app"
-version = "0.15.0"
+version = "0.16.0"
 dependencies = [
  "anyhow",
  "comrak",
+ "dashmap",
  "dirs 6.0.0",
  "futures",
  "gpui",
@@ -2954,6 +2969,7 @@ dependencies = [
  "syntect",
  "textwrap",
  "tokio",
+ "tokio-util",
  "tracing",
  "tracing-appender",
  "tracing-subscriber",
@@ -7806,6 +7822,7 @@ dependencies = [
  "bytes",
  "futures-core",
  "futures-sink",
+ "futures-util",
  "pin-project-lite",
  "tokio",
 ]
@@ -7971,9 +7988,9 @@ checksum = "8df9b6e13f2d32c91b9bd719c00d1958837bc7dec474d94952798cc8e69eeec3"
 
 [[package]]
 name = "tracing"
-version = "0.1.41"
+version = "0.1.43"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "784e0ac535deb450455cbfa28a6f0df145ea1bb7ae51b821cf5e7927fdcfbdd0"
+checksum = "2d15d90a0b5c19378952d479dc858407149d7bb45a14de0142f6c534b16fc647"
 dependencies = [
  "pin-project-lite",
  "tracing-attributes",
@@ -8026,9 +8043,9 @@ dependencies = [
 
 [[package]]
 name = "tracing-subscriber"
-version = "0.3.20"
+version = "0.3.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2054a14f5307d601f88daf0553e1cbf472acc4f2c51afab632431cdcd72124d5"
+checksum = "2f30143827ddab0d256fd843b7a66d164e9f271cfa0dde49142c5ca0ca291f1e"
 dependencies = [
  "matchers",
  "nu-ansi-term",

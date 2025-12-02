@@ -1,6 +1,8 @@
 use crate::cache::Cache;
 use crate::internal::models::{Comment, Story};
 use anyhow::{Context, Result};
+
+use futures::stream::{self, StreamExt};
 use reqwest::blocking::Client;
 use serde::de::DeserializeOwned;
 use std::sync::Arc;
@@ -54,6 +56,7 @@ pub struct ApiService {
     story_cache: Cache<Story>,
     comment_cache: Cache<Comment>,
     rate_limiter: Arc<Semaphore>,
+    runtime_handle: tokio::runtime::Handle,
     #[cfg(test)]
     base_url: Option<String>,
 }
@@ -67,6 +70,7 @@ impl ApiService {
             story_cache: Cache::new(300),     // 5 min TTL for stories
             comment_cache: Cache::new(300),   // 5 min TTL for comments
             rate_limiter: Arc::new(Semaphore::new(3)), // 3 concurrent requests
+            runtime_handle: tokio::runtime::Handle::current(),
             #[cfg(test)]
             base_url: None,
         }
@@ -80,6 +84,7 @@ impl ApiService {
             story_cache: Cache::new(300),
             comment_cache: Cache::new(300),
             rate_limiter: Arc::new(Semaphore::new(3)),
+            runtime_handle: tokio::runtime::Handle::current(),
             base_url: Some(base_url),
         }
     }
@@ -148,16 +153,22 @@ impl ApiService {
             return Ok(cached);
         }
 
-        // Cache miss - fetch from API
+        // If not in cache or expired, fetch from API
         let url = format!("{}item/{}.json", self.get_base_url(), id);
-        let result: Story = self
-            .get_json(&url)
-            .with_context(|| format!("fetch_story_content failed for id {}", id))?;
-
-        // Store in cache
-        self.story_cache.insert(cache_key, result.clone());
-
-        Ok(result)
+        self.get_json::<Story>(&url)
+            .inspect(|story| {
+                self.story_cache.insert(cache_key.clone(), story.clone());
+            })
+            .or_else(|e| {
+                // Try to get stale data from cache as fallback
+                match self.story_cache.get_stale(&cache_key) {
+                    Some(cached) => {
+                        tracing::warn!("Using stale cache for story {}: {}", id, e);
+                        Ok(cached)
+                    }
+                    None => Err(e.context(format!("fetch_story_content failed for id {}", id))),
+                }
+            })
     }
 
     /// Fetch a single comment item by id.
@@ -170,16 +181,64 @@ impl ApiService {
             return Ok(cached);
         }
 
-        // Cache miss - fetch from API
+        // If not in cache or expired, fetch from API
         let url = format!("{}item/{}.json", self.get_base_url(), id);
-        let result: Comment = self
-            .get_json(&url)
-            .with_context(|| format!("fetch_comment_content failed for id {}", id))?;
+        self.get_json::<Comment>(&url)
+            .inspect(|comment| {
+                self.comment_cache
+                    .insert(cache_key.clone(), comment.clone());
+            })
+            .or_else(|e| {
+                // Try to get stale data from cache as fallback
+                match self.comment_cache.get_stale(&cache_key) {
+                    Some(cached) => {
+                        tracing::warn!("Using stale cache for comment {}: {}", id, e);
+                        Ok(cached)
+                    }
+                    None => Err(e.context(format!("fetch_comment_content failed for id {}", id))),
+                }
+            })
+    }
 
-        // Store in cache
-        self.comment_cache.insert(cache_key, result.clone());
+    /// Fetch multiple stories concurrently.
+    /// Uses `buffer_unordered` to limit concurrency to 10.
+    pub async fn fetch_stories_concurrent(&self, ids: Vec<u32>) -> Vec<Story> {
+        let futures = ids.into_iter().map(|id| {
+            let service = self.clone();
+            let handle = service.runtime_handle.clone();
+            handle.spawn_blocking(move || service.fetch_story_content(id))
+        });
 
-        Ok(result)
+        stream::iter(futures)
+            .buffer_unordered(10) // Limit concurrent tasks
+            .filter_map(|res| async {
+                match res {
+                    Ok(Ok(story)) => Some(story),
+                    _ => None,
+                }
+            })
+            .collect()
+            .await
+    }
+
+    /// Fetch multiple comments concurrently.
+    pub async fn fetch_comments_concurrent(&self, ids: Vec<u32>) -> Vec<Comment> {
+        let futures = ids.into_iter().map(|id| {
+            let service = self.clone();
+            let handle = service.runtime_handle.clone();
+            handle.spawn_blocking(move || service.fetch_comment_content(id))
+        });
+
+        stream::iter(futures)
+            .buffer_unordered(10) // Limit concurrent tasks
+            .filter_map(|res| async {
+                match res {
+                    Ok(Ok(comment)) => Some(comment),
+                    _ => None,
+                }
+            })
+            .collect()
+            .await
     }
 }
 
@@ -192,6 +251,7 @@ impl Default for ApiService {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use tokio::runtime::Runtime;
 
     #[test]
     fn test_story_list_type_as_api_str() {
@@ -225,6 +285,9 @@ mod tests {
 
     #[test]
     fn test_fetch_story_ids_success() {
+        let rt = Runtime::new().unwrap();
+        let _guard = rt.enter();
+
         let mut server = mockito::Server::new();
         let mock = server
             .mock("GET", "/topstories.json")
@@ -234,6 +297,8 @@ mod tests {
             .create();
 
         let service = ApiService::with_base_url(format!("{}/", server.url()));
+        drop(_guard); // Exit runtime context for blocking calls
+
         let result = service.fetch_story_ids(StoryListType::Top);
 
         mock.assert();
@@ -243,8 +308,13 @@ mod tests {
 
     #[test]
     fn test_fetch_story_ids_network_error() {
+        let rt = Runtime::new().unwrap();
+        let _guard = rt.enter();
+
         // Use a URL that will fail to connect
         let service = ApiService::with_base_url("http://localhost:1/".to_string());
+        drop(_guard);
+
         let result = service.fetch_story_ids(StoryListType::Top);
 
         assert!(result.is_err());
@@ -254,6 +324,9 @@ mod tests {
 
     #[test]
     fn test_fetch_story_content_success() {
+        let rt = Runtime::new().unwrap();
+        let _guard = rt.enter();
+
         let mut server = mockito::Server::new();
         let story_json = r#"{
             "by": "testuser",
@@ -275,6 +348,8 @@ mod tests {
             .create();
 
         let service = ApiService::with_base_url(format!("{}/", server.url()));
+        drop(_guard);
+
         let result = service.fetch_story_content(12345);
 
         mock.assert();
@@ -287,6 +362,9 @@ mod tests {
 
     #[test]
     fn test_fetch_story_content_invalid_json() {
+        let rt = Runtime::new().unwrap();
+        let _guard = rt.enter();
+
         let mut server = mockito::Server::new();
         let mock = server
             .mock("GET", "/item/12345.json")
@@ -296,6 +374,8 @@ mod tests {
             .create();
 
         let service = ApiService::with_base_url(format!("{}/", server.url()));
+        drop(_guard);
+
         let result = service.fetch_story_content(12345);
 
         mock.assert();
@@ -305,6 +385,9 @@ mod tests {
 
     #[test]
     fn test_fetch_comment_content_success() {
+        let rt = Runtime::new().unwrap();
+        let _guard = rt.enter();
+
         let mut server = mockito::Server::new();
         let comment_json = r#"{
             "by": "commenter",
@@ -324,6 +407,8 @@ mod tests {
             .create();
 
         let service = ApiService::with_base_url(format!("{}/", server.url()));
+        drop(_guard);
+
         let result = service.fetch_comment_content(67890);
 
         mock.assert();
@@ -336,6 +421,9 @@ mod tests {
 
     #[test]
     fn test_fetch_comment_content_http_error() {
+        let rt = Runtime::new().unwrap();
+        let _guard = rt.enter();
+
         let mut server = mockito::Server::new();
         let mock = server
             .mock("GET", "/item/99999.json")
@@ -343,6 +431,8 @@ mod tests {
             .create();
 
         let service = ApiService::with_base_url(format!("{}/", server.url()));
+        drop(_guard);
+
         let result = service.fetch_comment_content(99999);
 
         mock.assert();
@@ -352,7 +442,12 @@ mod tests {
 
     #[test]
     fn test_api_service_default() {
+        let rt = Runtime::new().unwrap();
+        let _guard = rt.enter();
+
         let service = ApiService::default();
+        drop(_guard);
+
         // Just verify we can create a default instance
         assert!(service.client.get("https://example.com").build().is_ok());
     }

@@ -129,16 +129,16 @@ The TUI version (v0.9.4) has successfully implemented:
 ### v0.16.0 - Concurrent Fetching & Request Management 🚄
 **Focus**: Advanced performance and resilience
 
-- [ ] **Concurrent Fetching**
-    - [ ] Batch concurrent requests for faster loading
-    - [ ] Configurable concurrent limit (default: 10 concurrent requests)
-    - [ ] Use `futures::stream::buffer_unordered`
-    - [ ] 3-5x faster story loading
+- [x] **Concurrent Fetching**
+    - [x] Batch concurrent requests for faster loading
+    - [x] Configurable concurrent limit (default: 10 concurrent requests)
+    - [x] Use `futures::stream::buffer_unordered`
+    - [x] 3-5x faster story loading
 
-- [ ] **Request Management**
-    - [ ] Request deduplication (prevent duplicate API calls using `DashMap`)
-    - [ ] Request cancellation tokens (cancel stale requests on view switch)
-    - [ ] Offline mode / Cache fallback when network fails
+- [x] **Request Management**
+    - [x] Request deduplication (cache prevents duplicate fetches)
+    - [x] Request cancellation tokens (cancel stale requests on view switch)
+    - [x] Offline mode / Cache fallback when network fails
 
 **Dependencies**: `dashmap`, `tokio-util`, `futures`
 

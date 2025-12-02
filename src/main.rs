@@ -41,6 +41,13 @@ fn init_logging() {
 fn main() {
     init_logging();
 
+    // Initialize Tokio runtime to support async operations in background tasks
+    let runtime = tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .expect("Failed to create Tokio runtime");
+    let _guard = runtime.enter();
+
     Application::new().run(move |cx: &mut App| {
         gpui_component::theme::init(cx);
 
