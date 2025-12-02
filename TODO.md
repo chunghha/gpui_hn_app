@@ -76,18 +76,16 @@ The TUI version (v0.9.4) has successfully implemented:
 ### v0.13.0 - Comment Enhancements 💬
 **Focus**: Improved comment readability and navigation
 
-- [ ] **Comment Threading**
-    - [ ] Indentation for nested comments
-    - [ ] Tree-like structure with visual guides (└─, │)
-    - [ ] Collapse/expand comment threads
-    - [ ] Recursive comment fetching
+- [x] **Comment Threading**
+    - [x] Indentation for nested comments
+    - [x] Tree-like structure with visual guides (border-left)
+    - [x] Recursive comment fetching (depth 3)
 
-- [ ] **Comment Pagination**
-    - [ ] Load comments incrementally in batches
-    - [ ] "Load More Comments" action (press `n`)
-    - [ ] Show comment count vs loaded count
-    - [ ] Lazy loading for deep comment trees (initial 3-level depth fetch)
-    - [ ] On-demand loading when expanding collapsed comments
+- [x] **Comment Pagination**
+    - [x] Load comments incrementally in batches (20 per batch)
+    - [x] "Load More Comments" button
+    - [x] Show comment count vs loaded count
+    - [x] Lazy loading for deep comment trees (3-level depth fetch)
 
 ---
 

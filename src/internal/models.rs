@@ -34,3 +34,12 @@ pub struct Comment {
     #[serde(default)]
     pub deleted: bool,
 }
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct CommentViewModel {
+    pub id: u32,
+    pub comment: Comment,
+    pub depth: u32,
+    pub collapsed: bool,
+    pub loading: bool,
+}

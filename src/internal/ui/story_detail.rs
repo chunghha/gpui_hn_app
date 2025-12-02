@@ -1,5 +1,5 @@
 use crate::internal::markdown::{MarkdownStyle, render_markdown, soft_wrap};
-use crate::internal::models::Comment;
+use crate::internal::models::CommentViewModel;
 use crate::internal::scroll::ScrollState;
 use crate::state::{AppState, ViewMode};
 use gpui::{
@@ -255,7 +255,7 @@ fn render_story_header(
 
 struct CommentsListParams<'a> {
     story: &'a crate::internal::models::Story,
-    comments: &'a [Comment],
+    comments: &'a [CommentViewModel],
     loading: bool,
     colors: &'a ThemeColor,
     font_mono: SharedString,
@@ -300,13 +300,8 @@ fn render_comments_list(params: CommentsListParams) -> impl IntoElement {
                 .flex()
                 .flex_col()
                 .gap_2()
-                .children(params.comments.iter().map(|comment| {
-                    render_comment(
-                        comment,
-                        params.colors,
-                        params.font_mono.clone(),
-                        params.max_run,
-                    )
+                .children(params.comments.iter().map(|vm| {
+                    render_comment(vm, params.colors, params.font_mono.clone(), params.max_run)
                 }))
         })
         .when(has_more_comments && !params.comments.is_empty(), |this| {
@@ -334,30 +329,33 @@ fn render_comments_list(params: CommentsListParams) -> impl IntoElement {
 }
 
 fn render_comment(
-    comment: &Comment,
+    vm: &CommentViewModel,
     colors: &ThemeColor,
     font_mono: SharedString,
     max_run: usize,
 ) -> impl IntoElement {
-    let display_text = if comment.deleted {
-        "[deleted]".to_string()
-    } else {
-        match &comment.text {
-            Some(text) => match html2text::from_read(text.as_bytes(), 80) {
-                Ok(plain_text) => plain_text,
-                Err(_) => "[failed to parse comment]".to_string(),
-            },
-            None => "".to_string(),
-        }
+    let comment = &vm.comment;
+    let display_text = match (comment.deleted, &comment.text) {
+        (true, _) => "[deleted]".to_string(),
+        (false, Some(text)) => html2text::from_read(text.as_bytes(), 80)
+            .unwrap_or_else(|_| "[failed to parse comment]".to_string()),
+        (false, None) => String::new(),
     };
+
+    // Indentation based on depth
+    let indent_padding = vm.depth * 20; // 20px per level
 
     div()
         .flex()
         .flex_col()
+        .pl(gpui::px(indent_padding as f32))
         .p_3()
         .bg(colors.background)
         .border_1()
         .border_color(colors.border)
+        .when(vm.depth > 0, |this| {
+            this.border_l_2().border_color(colors.info.opacity(0.3))
+        })
         .rounded_md()
         .gap_2()
         .child(
