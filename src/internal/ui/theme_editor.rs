@@ -26,8 +26,9 @@ pub struct ThemeEditorView {
     ac_g_slider: Entity<SliderState>,
     ac_b_slider: Entity<SliderState>,
     // Theme name
-    _theme_name: String,
+    theme_name: String,
     pub focus_handle: gpui::FocusHandle,
+    theme_name_focus_handle: gpui::FocusHandle,
 }
 
 impl ThemeEditorView {
@@ -112,8 +113,9 @@ impl ThemeEditorView {
             ac_r_slider,
             ac_g_slider,
             ac_b_slider,
-            _theme_name: "Custom Theme".to_string(),
+            theme_name: "Custom Theme".to_string(),
             focus_handle: cx.focus_handle(),
+            theme_name_focus_handle: cx.focus_handle(),
         };
 
         // Subscribe to background color slider changes
@@ -288,7 +290,7 @@ impl ThemeEditorView {
 }
 
 impl Render for ThemeEditorView {
-    fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let app_state = self.app_state.clone();
         let theme = cx.theme();
         let colors = &theme.colors;
@@ -328,6 +330,62 @@ impl Render for ThemeEditorView {
                         v_flex()
                             .w(px(400.0))
                             .gap_6()
+                            .child(
+                                v_flex()
+                                    .gap_2()
+                                    .child(
+                                        div()
+                                            .text_sm()
+                                            .font_weight(gpui::FontWeight::SEMIBOLD)
+                                            .child("Theme Name"),
+                                    )
+                                    .child(
+                                        div()
+                                            .flex()
+                                            .items_center()
+                                            .bg(colors.background)
+                                            .border_1()
+                                            .border_color(if self.theme_name_focus_handle.is_focused(window) {
+                                                colors.accent
+                                            } else {
+                                                colors.border
+                                            })
+                                            .rounded_md()
+                                            .p_2()
+                                            .track_focus(&self.theme_name_focus_handle)
+                                            .on_key_down(cx.listener(|this, event: &gpui::KeyDownEvent, _window, cx| {
+                                                let keystroke = &event.keystroke;
+                                                if keystroke.modifiers.platform
+                                                    || keystroke.modifiers.control
+                                                    || keystroke.modifiers.alt
+                                                {
+                                                    return;
+                                                }
+
+                                                if keystroke.key == "backspace" {
+                                                    this.theme_name.pop();
+                                                    cx.notify();
+                                                } else if keystroke.key.len() == 1 {
+                                                    this.theme_name.push_str(&keystroke.key);
+                                                    cx.notify();
+                                                }
+                                            }))
+                                            .child(
+                                                div()
+                                                    .text_sm()
+                                                    .child(if self.theme_name.is_empty() {
+                                                        "Enter theme name...".to_string()
+                                                    } else {
+                                                        self.theme_name.clone()
+                                                    })
+                                                    .text_color(if self.theme_name.is_empty() {
+                                                        colors.muted_foreground
+                                                    } else {
+                                                        colors.foreground
+                                                    }),
+                                            ),
+                                    ),
+                            )
                             .child(self.color_picker_section(
                                 "Background Color".into(),
                                 self.background_color,
@@ -356,18 +414,79 @@ impl Render for ThemeEditorView {
                                         Button::new("btn-save")
                                             .primary()
                                             .label("Save Theme")
-                                            .on_click(|_, _, _| {
-                                                // TODO: Implement theme save
-                                                tracing::info!("Save theme clicked");
-                                            })
+                                            .on_click(cx.listener(|this, _, _window, cx| {
+                                                let palette = crate::utils::theme_export::build_theme_palette(
+                                                    this.background_color,
+                                                    this.foreground_color,
+                                                    this.accent_color,
+                                                );
+
+                                                // Determine save path
+                                                let app_config = this.app_state.read(cx).config.clone();
+                                                let theme_dir = std::path::PathBuf::from(app_config.theme_file)
+                                                    .parent()
+                                                    .map(|p| p.to_path_buf())
+                                                    .unwrap_or_else(|| std::path::PathBuf::from("./themes"));
+
+                                                // Create directory if it doesn't exist
+                                                let _ = std::fs::create_dir_all(&theme_dir);
+
+                                                let filename = format!("{}.json", this.theme_name.replace(" ", "_").to_lowercase());
+                                                let path = theme_dir.join(filename);
+
+                                                match crate::utils::theme_export::export_theme_to_json(
+                                                    &this.theme_name,
+                                                    if this.background_color.r < 128 { "dark" } else { "light" },
+                                                    &palette,
+                                                    &path,
+                                                ) {
+                                                    Ok(_) => {
+                                                        tracing::info!("Theme saved to {}", path.display());
+                                                        // TODO: Show success notification
+                                                    },
+                                                    Err(e) => {
+                                                        tracing::error!("Failed to save theme: {}", e);
+                                                        // TODO: Show error notification
+                                                    }
+                                                }
+                                            }))
                                     )
                                     .child(
                                         Button::new("btn-export")
                                             .label("Export JSON")
-                                            .on_click(|_, _, _| {
-                                                // TODO: Implement theme export
-                                                tracing::info!("Export theme clicked");
-                                            })
+                                            .on_click(cx.listener(|this, _, _window, cx| {
+                                                 let palette = crate::utils::theme_export::build_theme_palette(
+                                                    this.background_color,
+                                                    this.foreground_color,
+                                                    this.accent_color,
+                                                );
+
+                                                // For now, export behaves same as save but logs explicitly as export
+                                                // In a real app, this might open a file dialog
+                                                let app_config = this.app_state.read(cx).config.clone();
+                                                let theme_dir = std::path::PathBuf::from(app_config.theme_file)
+                                                    .parent()
+                                                    .map(|p| p.to_path_buf())
+                                                    .unwrap_or_else(|| std::path::PathBuf::from("./themes"));
+
+                                                let _ = std::fs::create_dir_all(&theme_dir);
+                                                let filename = format!("{}_export.json", this.theme_name.replace(" ", "_").to_lowercase());
+                                                let path = theme_dir.join(filename);
+
+                                                match crate::utils::theme_export::export_theme_to_json(
+                                                    &this.theme_name,
+                                                    if this.background_color.r < 128 { "dark" } else { "light" },
+                                                    &palette,
+                                                    &path,
+                                                ) {
+                                                    Ok(_) => {
+                                                        tracing::info!("Theme exported to {}", path.display());
+                                                    },
+                                                    Err(e) => {
+                                                        tracing::error!("Failed to export theme: {}", e);
+                                                    }
+                                                }
+                                            }))
                                     )
                             )
                     )

@@ -4,20 +4,27 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.20.0] - 2025-12-03
+
+### Added - Theme System Completion
+- **Theme Management**:
+  - **Save Theme**: Save your custom theme to a JSON file in the configured themes directory
+  - **Export Theme**: Export your theme configuration to a JSON file
+  - **Theme Naming**: Name your custom themes directly in the editor
+  - **Auto-Discovery**: Automatically load new themes from the themes directory
+
 ## [0.19.0] - 2025-12-03
 
-### Added - Theme Editor (Partial Implementation)
-- **Interactive Theme Editor** (Core UI):
+### Added - Theme Editor (Core UI)
+- **Interactive Theme Editor**:
   - Open with `t` key to access theme customization
-  - RGB sliders for background, foreground, and accent colors
+  - RGB sliders for background, foreground, and accent colors (0-255 range)
   - Real-time color preview panel showing changes
-  - Visual color swatches with hex values
+  - Visual color swatches with hex color codes
   - Live preview area demonstrating theme appearance
 
-### Planned (Not Yet Implemented)
-- Export custom themes to JSON (UI placeholder exists)
-- Auto-discovery from configured theme directory
-- Theme naming with auto-complementary generation
+### Future
+- Remaining theme features (export, auto-discovery, theme naming) planned for v0.20.0
 
 ## [0.18.0] - 2025-12-02
 
