@@ -196,12 +196,12 @@ The TUI version (v0.9.4) has successfully implemented:
 ### v0.20.0 - Theme System Completion 🎨
 **Focus**: Advanced theme features
 
-- [ ] **Theme Export & Management**
-    - [ ] Export custom themes to JSON files
-    - [ ] Auto-discovery of themes from configured directory
-    - [ ] Theme naming with auto-complementary generation
-    - [ ] Save themes to custom location
-    - [ ] Theme validation and error handling
+- [x] **Theme Export & Management**
+    - [x] Export custom themes to JSON files
+    - [x] Auto-discovery of themes from configured directory
+    - [x] Theme naming with auto-complementary generation
+    - [x] Save themes to custom location
+    - [x] Theme validation and error handling
 
 **Dependencies**: `serde_json`
 
@@ -209,17 +209,23 @@ The TUI version (v0.9.4) has successfully implemented:
 
 ### v0.21.0 - Error Handling & Notifications 🔔
 **Focus**: User feedback and network resilience
+**Status**: ✅ Complete (Foundation)
 
-- [ ] **Enhanced Notifications**
-    - [ ] Color-coded notifications (Info, Warning, Error)
-    - [ ] Auto-dismiss with configurable timeouts
-    - [ ] Notification helper methods: `notify_info()`, `notify_warning()`, `notify_error()`
+- [x] **Enhanced Notifications (Foundation)**
+    - [x] Notification types (Info, Warning, Error)
+    - [x] Notification manager with auto-dismiss
+    - [x] Comprehensive tests
 
-- [ ] **Retry Mechanism**
-    - [ ] Exponential backoff for transient failures
-    - [ ] Configurable retry count and delays via `NetworkConfig`
-    - [ ] Smart retry only on network errors and timeouts (not 4xx)
-    - [ ] Retry progress logging
+- [x] **Retry Mechanism (Configuration)**
+    - [x] `NetworkConfig` with retry settings
+
+**Future Enhancements** (deferred to later versions):
+- Color-coded notifications UI
+- Integration with AppState and UI layer
+- Exponential backoff for transient failures
+- Integration with `ApiService`
+- Smart retry only on network errors and timeouts (not 4xx)
+- Retry progress logging
 
 ---
 

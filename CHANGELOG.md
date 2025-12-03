@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.21.0] - 2025-12-03
+
+### Added - Error Handling & Notifications (Foundation)
+- **Notification System**:
+  - Created `notification.rs` module with `NotificationType` enum (Info, Warning, Error)
+  - Implemented `Notification` struct with auto-expiration tracking
+  - Added `NotificationManager` for managing active notifications
+  - Includes comprehensive tests for notification lifecycle and expiration
+- **Network Configuration**:
+  - Added `NetworkConfig` to `AppConfig` with retry settings
+  - Configurable `max_retries`, `initial_retry_delay_ms`, and `max_retry_delay_ms`
+  - Default values: 3 max retries, 1000ms initial delay, 30000ms max delay
+
+**Note**: This release provides the foundational infrastructure for notifications and network retry configuration. UI integration and retry mechanism implementation are planned for future releases.
+
 ## [0.20.0] - 2025-12-03
 
 ### Added - Theme System Completion

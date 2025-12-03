@@ -63,6 +63,38 @@ impl Default for UiConfig {
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct NetworkConfig {
+    #[serde(default = "default_max_retries")]
+    pub max_retries: u32,
+    #[serde(default = "default_initial_retry_delay_ms")]
+    pub initial_retry_delay_ms: u64,
+    #[serde(default = "default_max_retry_delay_ms")]
+    pub max_retry_delay_ms: u64,
+}
+
+fn default_max_retries() -> u32 {
+    3
+}
+
+fn default_initial_retry_delay_ms() -> u64 {
+    1000
+}
+
+fn default_max_retry_delay_ms() -> u64 {
+    30000
+}
+
+impl Default for NetworkConfig {
+    fn default() -> Self {
+        Self {
+            max_retries: default_max_retries(),
+            initial_retry_delay_ms: default_initial_retry_delay_ms(),
+            max_retry_delay_ms: default_max_retry_delay_ms(),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct AppConfig {
     pub font_sans: String,
     pub font_serif: String,
@@ -105,6 +137,9 @@ pub struct AppConfig {
     /// UI Customization
     #[serde(default)]
     pub ui: UiConfig,
+    /// Network Configuration
+    #[serde(default)]
+    pub network: NetworkConfig,
 }
 
 fn default_webview_theme_injection() -> String {
@@ -179,6 +214,7 @@ impl Default for AppConfig {
             window_height: 720.0,
             keybindings: default_keybindings(),
             ui: UiConfig::default(),
+            network: NetworkConfig::default(),
         }
     }
 }

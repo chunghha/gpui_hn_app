@@ -226,6 +226,7 @@ mod tests {
             window_height: 720.0,
             keybindings: Default::default(),
             ui: Default::default(),
+            network: Default::default(),
         }
     }
 

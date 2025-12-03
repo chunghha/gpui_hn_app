@@ -44,7 +44,7 @@ The codebase follows a clear separation between public APIs (`api`, `config`, `s
 - Embedded WebView for reading article content with adjustable zoom slider (50-250%)
 - **Vi-style keyboard shortcuts** for navigation (`j`/`k` for scrolling, `g` for jump to top)
 - Configurable fonts, WebView zoom, and window size
-- Dark/Light theme support (Flexoki theme included)
+- Dark/Light theme support with **Theme Editor** (Save/Export custom themes)
 - Responsive scrolling with infinite loading
 - **Enhanced Search**: Regex support, search history, and multiple search modes (Title, Comments, Both)
 - **Sorting**: Sort stories by Score, Comments, or Time (Ascending/Descending)
@@ -143,6 +143,11 @@ Note: copy `config.example.ron` to `config.ron` and edit values as needed.
   - `padding`: Window padding (default: `16.0`)
   - `status_bar_format`: Format string for status bar (default: `"Mode: {mode} | {category} | {count} items | Sort: {sort} ({order})"`)
   - `list_view_items`: List of fields to show in story list (default: `["score", "comments", "domain", "author", "age"]`)
+- `network`: Network configuration settings:
+  - `max_retries`: Maximum number of retry attempts for failed requests (default: `3`)
+  - `initial_retry_delay_ms`: Initial delay before first retry in milliseconds (default: `1000`)
+  - `max_retry_delay_ms`: Maximum delay between retries in milliseconds (default: `30000`)
+
 
 ## Internal UI components
 
@@ -203,7 +208,7 @@ Recommended helper tasks (see `Taskfile.yml` in the project root):
 | `B` | View bookmarks |
 | `H` | View history |
 | `X` | Clear history (in history view) |
-| `t` | Open theme editor |
+| `t` | Open theme editor (Save/Export available) |
 | `Esc` | Go back / Close webview |
 | `Cmd+Q` (Mac) / `Ctrl+Q` (Windows/Linux) | Quit application |
 | `Ctrl+R` | Focus search bar (supports Regex) |
