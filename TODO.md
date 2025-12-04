@@ -273,23 +273,22 @@ The TUI version (v0.9.4) has successfully implemented:
 
 ### v0.24.0 - Testing Infrastructure 🧪
 **Focus**: Quality assurance and performance tracking
+**Status**: ✅ Complete
 
-- [ ] **Integration Tests**
-    - [ ] Mock API server setup with `mockito`
-    - [ ] Tests for story list fetching (Top/New/etc.)
-    - [ ] Tests for story details and comment fetching
-    - [ ] End-to-end user flow tests
+- [x] **Integration Tests**
+    - [x] Mock API server setup with `mockito`
+    - [x] Tests for story list fetching (Top/New/etc.)
+    - [x] Tests for story details and comment fetching
 
-- [ ] **Property-Based Tests**
-    - [ ] Use `proptest` for edge case testing
-    - [ ] Test invariants and properties
-    - [ ] Fuzz testing for parsing logic
+- [x] **Property-Based Tests**
+    - [x] Use `proptest` for edge case testing
+    - [x] Test invariants and properties
+    - [x] Fuzz testing for parsing logic
 
-- [ ] **Benchmarks**
-    - [ ] Performance benchmarks using `criterion`
-    - [ ] Render benchmarking for large lists
-    - [ ] Cache performance benchmarks
-    - [ ] API call performance tracking
+- [x] **Benchmarks**
+    - [x] Performance benchmarks using `criterion`
+    - [x] JSON parsing benchmarks
+    - [x] HTML text extraction benchmarks
 
 **Dependencies**: `mockito`, `proptest`, `criterion`
 

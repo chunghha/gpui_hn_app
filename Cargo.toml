@@ -1,6 +1,6 @@
 [package]
 name = "gpui-hn-app"
-version = "0.23.0"
+version = "0.24.0"
 edition = "2024"
 
 [dependencies]
@@ -39,4 +39,10 @@ dashmap = "6.1.0"
 tokio-util = { version = "0.7.17", features = ["rt"] }
 
 [dev-dependencies]
-mockito = "1.7.0"
+mockito = "1.7.1"
+proptest = "1.9.0"
+criterion = { version = "0.8.0", features = ["html_reports"] }
+
+[[bench]]
+name = "parsing_benchmark"
+harness = false

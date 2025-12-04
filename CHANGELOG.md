@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.24.0] - 2025-12-04
+
+### Added - Testing Infrastructure
+- **Integration Tests**:
+  - Added `tests/integration_api.rs` with mockito-based API tests
+  - Tests for story list fetching and story details
+- **Property-Based Tests**:
+  - Added `tests/proptest_models.rs` using proptest
+  - Fuzz testing for Story and Comment deserialization
+- **Benchmarks**:
+  - Added `benches/parsing_benchmark.rs` using criterion
+  - Benchmarks for JSON parsing and HTML text extraction
+
+### Changed
+- `ApiService` now supports configurable base URL for testing
+
 ## [0.23.0] - 2025-12-04
 
 ### Added - Accessibility Features

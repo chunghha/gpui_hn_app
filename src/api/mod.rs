@@ -57,7 +57,6 @@ pub struct ApiService {
     comment_cache: Cache<Comment>,
     rate_limiter: Arc<Semaphore>,
     runtime_handle: tokio::runtime::Handle,
-    #[cfg(test)]
     base_url: Option<String>,
 }
 
@@ -71,12 +70,11 @@ impl ApiService {
             comment_cache: Cache::new(300),   // 5 min TTL for comments
             rate_limiter: Arc::new(Semaphore::new(3)), // 3 concurrent requests
             runtime_handle: tokio::runtime::Handle::current(),
-            #[cfg(test)]
             base_url: None,
         }
     }
 
-    #[cfg(test)]
+    #[allow(dead_code)]
     pub fn with_base_url(base_url: String) -> Self {
         Self {
             client: Client::new(),
@@ -89,14 +87,8 @@ impl ApiService {
         }
     }
 
-    #[cfg(test)]
     fn get_base_url(&self) -> &str {
         self.base_url.as_deref().unwrap_or(HN_API_BASE_URL)
-    }
-
-    #[cfg(not(test))]
-    fn get_base_url(&self) -> &str {
-        HN_API_BASE_URL
     }
 
     /// Generic helper to GET a URL and deserialize the JSON body into `T`.
