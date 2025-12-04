@@ -89,10 +89,8 @@ impl Render for BookmarkListView {
                             bookmark.id,
                             bookmark.title.clone().unwrap_or_default(),
                             bookmark.url.clone(),
-                            colors.background.into(),
-                            colors.foreground.into(),
-                            colors.border.into(),
                             app_state_entity,
+                            &colors,
                         )
                     }))
                     .when(bookmarks.is_empty(), |this| {
@@ -126,19 +124,17 @@ fn bookmark_item(
     id: u32,
     title: String,
     url: Option<String>,
-    surface_color: gpui::Rgba,
-    text_color: gpui::Rgba,
-    border_color: gpui::Rgba,
     app_state: Entity<AppState>,
+    colors: &gpui_component::ThemeColor,
 ) -> impl IntoElement {
     div()
         .flex()
         .flex_col()
         .p_3()
         .gap_2()
-        .bg(surface_color)
+        .bg(colors.background)
         .border_1()
-        .border_color(border_color)
+        .border_color(colors.border)
         .rounded_md()
         .cursor_pointer()
         .on_mouse_down(MouseButton::Left, {
@@ -156,14 +152,10 @@ fn bookmark_item(
                     div()
                         .text_base()
                         .font_weight(gpui::FontWeight::MEDIUM)
-                        .text_color(text_color)
+                        .text_color(colors.foreground)
                         .child(title.clone()),
                 )
-                .child(
-                    div()
-                        .text_color(gpui::rgb(0x00FF_D700)) // Gold color for star
-                        .child("★"),
-                ),
+                .child(div().text_color(colors.accent).child("★")),
         )
         .context_menu(move |menu, _window, _cx| {
             let app_state_bookmark = app_state.clone();

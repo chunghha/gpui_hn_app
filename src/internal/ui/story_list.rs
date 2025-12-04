@@ -70,6 +70,8 @@ impl Render for StoryListView {
         let should_focus = app_state_read.should_focus_search;
         let ui_config = app_state_read.config.ui.clone();
         let current_list = app_state_read.current_list;
+        let loaded_count = app_state_read.loaded_count;
+        let total_count = app_state_read.story_ids.len();
         let _ = app_state_read; // Release borrow
 
         if should_focus {
@@ -86,18 +88,16 @@ impl Render for StoryListView {
         let verbose_status = app_state_read.config.accessibility.verbose_status;
         let status_bar_text = if verbose_status {
             format!(
-                "Viewing {:?} results for {}, {} items loaded, sorted by {:?} in {:?} order.",
-                search_mode,
-                current_list,
-                stories.len(),
-                sort_option,
-                sort_order
+                "Viewing {:?} results for {}, {} of {} stories loaded, sorted by {:?} in {:?} order.",
+                search_mode, current_list, loaded_count, total_count, sort_option, sort_order
             )
         } else {
             ui_config
                 .status_bar_format
                 .replace("{mode}", &format!("{:?}", search_mode))
                 .replace("{category}", &format!("{}", current_list))
+                .replace("{loaded}", &format!("{}", loaded_count))
+                .replace("{total}", &format!("{}", total_count))
                 .replace("{count}", &format!("{}", stories.len()))
                 .replace("{sort}", &format!("{:?}", sort_option))
                 .replace("{order}", &format!("{:?}", sort_order))
@@ -108,21 +108,23 @@ impl Render for StoryListView {
             .flex_col()
             .size_full()
             .child(
-                // Search Bar & Status
+                // Search Bar & Status in single row
                 div()
                     .flex()
-                    .flex_col()
+                    .items_center()
+                    .justify_between()
                     .w_full()
-                    .bg(colors.secondary)
+                    .bg(colors.background)
                     .border_b_1()
                     .border_color(colors.border)
                     .p_2()
-                    .gap_2()
+                    .gap_4()
                     .child(
                         // Input Area
                         div()
                             .flex()
                             .items_center()
+                            .flex_1()
                             .gap_2()
                             .bg(colors.background)
                             .border_1()
@@ -222,26 +224,26 @@ impl Render for StoryListView {
                             ))
                             .child(div().text_sm().text_color(colors.foreground).child(
                                 if search_query.is_empty() {
-                                    "Type to search... (Ctrl+R for Regex)".to_string()
+                                    "Search...".to_string()
                                 } else {
                                     search_query.clone()
                                 },
                             )),
                     )
                     .child(
-                        // Status Bar
+                        // Status Bar (right side)
                         div()
                             .flex()
-                            .justify_between()
+                            .items_center()
+                            .flex_shrink_0()
                             .text_xs()
-                            .text_color(colors.foreground)
-                            .child(div().flex().gap_2().child(status_bar_text))
+                            .text_color(colors.muted_foreground)
                             .child(if let Some(err) = regex_error {
                                 div()
-                                    .text_color(gpui::rgb(0xFF0000))
+                                    .text_color(colors.danger)
                                     .child(format!("Regex Error: {}", err))
                             } else {
-                                div()
+                                div().child(status_bar_text)
                             }),
                     ),
             )
@@ -336,6 +338,7 @@ impl Render for StoryListView {
                                             colors.border.into(),
                                             app_state_entity,
                                             &ui_config.list_view_items,
+                                            &colors,
                                         )
                                     }),
                                 )
@@ -396,6 +399,7 @@ fn story_item(
     border_color: gpui::Rgba,
     app_state: Entity<AppState>,
     visible_fields: &[String],
+    colors: &gpui_component::ThemeColor,
 ) -> impl IntoElement {
     div()
         .flex()
@@ -494,11 +498,7 @@ fn story_item(
                         }),
                 )
                 .when(is_bookmarked, |this| {
-                    this.child(
-                        div()
-                            .text_color(gpui::rgb(0xFFD700)) // Gold color
-                            .child("★"),
-                    )
+                    this.child(div().text_color(colors.accent).child("★"))
                 }),
         )
         .context_menu(move |menu, _window, _cx| {

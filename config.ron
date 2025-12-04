@@ -5,7 +5,7 @@
     font_mono: "IBM Plex Mono",
 
     // Preferred theme name to use from ./themes (e.g. "Flexoki Light" or "Flexoki Dark")
-    theme_name: "Zoegi Light",
+    theme_name: "Ghost in the Shell Light",
 
     // Path to a theme file or themes directory.
     // If this points to a file, the parent directory will be watched.
@@ -44,8 +44,8 @@
         padding: 16.0,
 
         // Status bar format - customize the text shown below the search bar
-        // Available tokens: {mode}, {category}, {count}, {sort}, {order}
-        status_bar_format: "Mode: {mode} | {category} | {count} items | Sort: {sort} ({order})",
+        // Available tokens: {mode}, {category}, {loaded}, {total}, {count}, {sort}, {order}
+        status_bar_format: "{mode} | {category} | {loaded}/{total} loaded | Sort: {sort} ({order})",
 
         // List view items - which metadata to show for each story
         // Available options: "score", "comments", "domain", "author", "age"

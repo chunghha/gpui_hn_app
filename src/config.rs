@@ -40,7 +40,7 @@ fn default_padding() -> f32 {
 }
 
 fn default_status_bar_format() -> String {
-    "{mode} | {category} | {count} items".to_string()
+    "{mode} | {category} | {loaded}/{total} loaded | Sort: {sort} ({order})".to_string()
 }
 
 fn default_list_view_items() -> Vec<String> {

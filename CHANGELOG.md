@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.26.0] - 2025-12-04
+
+### Added - Story Loading Progress
+- Status bar now shows loading progress: `{loaded}/{total} loaded`
+- Verbose mode shows: "X of Y stories loaded"
+- New placeholders: `{loaded}`, `{total}` for custom status bar formats
+
 ## [0.25.0] - 2025-12-04
 
 ### Changed - Pre-Release Code Quality

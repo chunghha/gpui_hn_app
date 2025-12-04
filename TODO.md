@@ -308,6 +308,17 @@ The TUI version (v0.9.4) has successfully implemented:
 
 ---
 
+### v0.26.0 - Story Loading Progress 📊
+**Focus**: Show loading progress in status bar
+**Status**: ✅ Complete
+
+- [x] **Status Bar Enhancement**
+    - [x] Display loaded/total story count (e.g., "20/500 loaded")
+    - [x] New placeholders: `{loaded}`, `{total}`
+    - [x] Verbose mode shows full progress sentence
+
+---
+
 ## 🎯 GPUI-Specific Enhancements (Post-Port)
 
 ### WebView Integration

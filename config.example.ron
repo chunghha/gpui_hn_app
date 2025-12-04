@@ -46,9 +46,12 @@
         padding: 16.0,
 
         // Status bar format - customize the text shown below the search bar
-        // Available tokens: {mode}, {category}, {count}, {sort}, {order}
-        // Example: "Mode: {mode} | {category} | {count} items | Sort: {sort} ({order})"
-        status_bar_format: "Mode: {mode} | {category} | {count} items | Sort: {sort} ({order})",
+        // Available tokens: {mode}, {category}, {loaded}, {total}, {count}, {sort}, {order}
+        // - {loaded}: Number of stories fetched so far
+        // - {total}: Total stories available in category
+        // - {count}: Stories after search filtering
+        // Example: "{mode} | {category} | {loaded}/{total} loaded | Sort: {sort} ({order})"
+        status_bar_format: "{mode} | {category} | {loaded}/{total} loaded | Sort: {sort} ({order})",
 
         // List view items - which metadata to show for each story
         // Available options: "score", "comments", "domain", "author", "age"

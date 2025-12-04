@@ -141,7 +141,7 @@ Note: copy `config.example.ron` to `config.ron` and edit values as needed.
 - `keybindings`: Map of key combinations to actions (e.g., `"ctrl+j": "ScrollDown"`). See `src/config.rs` for available actions.
 - `ui`: UI customization settings:
   - `padding`: Window padding (default: `16.0`)
-  - `status_bar_format`: Format string for status bar (default: `"Mode: {mode} | {category} | {count} items | Sort: {sort} ({order})"`)
+  - `status_bar_format`: Format string for status bar. Available placeholders: `{mode}`, `{category}`, `{loaded}`, `{total}`, `{count}`, `{sort}`, `{order}` (default: `"{mode} | {category} | {loaded}/{total} loaded"`)
   - `list_view_items`: List of fields to show in story list (default: `["score", "comments", "domain", "author", "age"]`)
 - `network`: Network configuration settings:
   - `max_retries`: Maximum number of retry attempts for failed requests (default: `3`)

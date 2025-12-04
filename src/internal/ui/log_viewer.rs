@@ -72,17 +72,17 @@ impl Render for LogViewerView {
                     .gap_1()
                     .overflow_y_hidden()
                     .p_4()
-                    .bg(gpui::rgb(0x001a_1a1a))
+                    .bg(colors.overlay)
                     .border_1()
                     .border_color(colors.border)
                     .rounded_md()
                     .children(log_lines.iter().map(|line| {
                         let (level_color, level_text) = match () {
-                            _ if line.contains("[ERROR]") => (gpui::rgb(0x00ff_5555), "ERROR"),
-                            _ if line.contains("[WARN]") => (gpui::rgb(0x00ff_b86c), "WARN"),
-                            _ if line.contains("[INFO]") => (gpui::rgb(0x0050_fa7b), "INFO"),
-                            _ if line.contains("[DEBUG]") => (gpui::rgb(0x008b_e9fd), "DEBUG"),
-                            _ => (gpui::rgb(0x0062_72a4), "TRACE"),
+                            _ if line.contains("[ERROR]") => (colors.danger, "ERROR"),
+                            _ if line.contains("[WARN]") => (colors.warning, "WARN"),
+                            _ if line.contains("[INFO]") => (colors.info, "INFO"),
+                            _ if line.contains("[DEBUG]") => (colors.accent, "DEBUG"),
+                            _ => (colors.foreground, "TRACE"),
                         };
 
                         div()
@@ -101,7 +101,7 @@ impl Render for LogViewerView {
                             .child(
                                 div()
                                     .text_xs()
-                                    .text_color(gpui::rgb(0x00f8_f8f2))
+                                    .text_color(colors.foreground)
                                     .flex_1()
                                     .child(line.clone()),
                             )
