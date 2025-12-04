@@ -72,21 +72,17 @@ impl Render for LogViewerView {
                     .gap_1()
                     .overflow_y_hidden()
                     .p_4()
-                    .bg(gpui::rgb(0x1a1a1a))
+                    .bg(gpui::rgb(0x001a_1a1a))
                     .border_1()
                     .border_color(colors.border)
                     .rounded_md()
                     .children(log_lines.iter().map(|line| {
-                        let (level_color, level_text) = if line.contains("[ERROR]") {
-                            (gpui::rgb(0xff5555), "ERROR")
-                        } else if line.contains("[WARN]") {
-                            (gpui::rgb(0xffb86c), "WARN")
-                        } else if line.contains("[INFO]") {
-                            (gpui::rgb(0x50fa7b), "INFO")
-                        } else if line.contains("[DEBUG]") {
-                            (gpui::rgb(0x8be9fd), "DEBUG")
-                        } else {
-                            (gpui::rgb(0x6272a4), "TRACE")
+                        let (level_color, level_text) = match () {
+                            _ if line.contains("[ERROR]") => (gpui::rgb(0x00ff_5555), "ERROR"),
+                            _ if line.contains("[WARN]") => (gpui::rgb(0x00ff_b86c), "WARN"),
+                            _ if line.contains("[INFO]") => (gpui::rgb(0x0050_fa7b), "INFO"),
+                            _ if line.contains("[DEBUG]") => (gpui::rgb(0x008b_e9fd), "DEBUG"),
+                            _ => (gpui::rgb(0x0062_72a4), "TRACE"),
                         };
 
                         div()
@@ -105,7 +101,7 @@ impl Render for LogViewerView {
                             .child(
                                 div()
                                     .text_xs()
-                                    .text_color(gpui::rgb(0xf8f8f2))
+                                    .text_color(gpui::rgb(0x00f8_f8f2))
                                     .flex_1()
                                     .child(line.clone()),
                             )

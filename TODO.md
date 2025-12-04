@@ -294,6 +294,20 @@ The TUI version (v0.9.4) has successfully implemented:
 
 ---
 
+### v0.25.0 - Pre-Release Code Quality 🧹
+**Focus**: Code quality and stability for stable release
+**Status**: ✅ Complete
+
+- [x] **Clippy Pedantic Fixes**
+    - [x] Numeric literal formatting with underscores
+    - [x] Hex color literal formatting
+    - [x] Raw string cleanup where possible
+
+- [x] **Code Organization**
+    - [x] Reviewed and cleaned up code patterns
+
+---
+
 ## 🎯 GPUI-Specific Enhancements (Post-Port)
 
 ### WebView Integration

@@ -161,7 +161,7 @@ fn bookmark_item(
                 )
                 .child(
                     div()
-                        .text_color(gpui::rgb(0xFFD700)) // Gold color for star
+                        .text_color(gpui::rgb(0x00FF_D700)) // Gold color for star
                         .child("★"),
                 ),
         )

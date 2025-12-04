@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.25.0] - 2025-12-04
+
+### Changed - Pre-Release Code Quality
+- Fixed clippy pedantic warnings:
+  - Added underscore separators to numeric literals for readability
+  - Formatted hex color literals with RGBA notation
+- Refactored if-else chains to pattern matching expressions
+- Standardized regex patterns in config save functionality
+- Code organization improvements for pre-release stability
+
 ## [0.24.0] - 2025-12-04
 
 ### Added - Testing Infrastructure

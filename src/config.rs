@@ -355,16 +355,16 @@ impl AppConfig {
                 .build()
                 .unwrap();
             *content = re
-                .replace_all(content, format!(r#"${{1}}"{}""#, value))
+                .replace_all(content, format!(r#"${{1}}"{}"{sep}"#, value, sep = ""))
                 .to_string();
         };
 
         let replace_val = |content: &mut String, key: &str, value: String| {
-            let re = RegexBuilder::new(&format!(r#"(\s*{}\s*:\s*)[^,\s)]+"#, regex::escape(key)))
+            let re = RegexBuilder::new(&format!(r"(\s*{}\s*:\s*)[^,\s)]+", regex::escape(key)))
                 .build()
                 .unwrap();
             *content = re
-                .replace_all(content, format!(r#"${{1}}{}"#, value))
+                .replace_all(content, format!(r"${{1}}{}", value))
                 .to_string();
         };
 

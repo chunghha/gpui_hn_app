@@ -156,13 +156,13 @@ impl History {
                 let hours = s / 3600;
                 format!("{}h ago", hours)
             }
-            s if s < 2592000 => {
+            s if s < 2_592_000 => {
                 // Less than 30 days
                 let days = s / 86400;
                 format!("{}d ago", days)
             }
             s => {
-                let months = s / 2592000;
+                let months = s / 2_592_000;
                 format!("{}mo ago", months)
             }
         }
