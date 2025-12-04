@@ -19,6 +19,7 @@ pub enum Action {
     ShowHistory,
     ClearHistory,
     OpenThemeEditor,
+    ShowLogViewer,
     None,
 }
 
@@ -95,6 +96,41 @@ impl Default for NetworkConfig {
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct LogConfig {
+    #[serde(default = "default_log_level")]
+    pub log_level: String,
+    #[serde(default = "default_log_dir")]
+    pub log_dir: String,
+    #[serde(default)]
+    pub module_filters: std::collections::HashMap<String, String>,
+    #[serde(default = "default_enable_performance_metrics")]
+    pub enable_performance_metrics: bool,
+}
+
+fn default_log_level() -> String {
+    "info".to_string()
+}
+
+fn default_log_dir() -> String {
+    "./logs".to_string()
+}
+
+fn default_enable_performance_metrics() -> bool {
+    false
+}
+
+impl Default for LogConfig {
+    fn default() -> Self {
+        Self {
+            log_level: default_log_level(),
+            log_dir: default_log_dir(),
+            module_filters: std::collections::HashMap::new(),
+            enable_performance_metrics: default_enable_performance_metrics(),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct AppConfig {
     pub font_sans: String,
     pub font_serif: String,
@@ -140,6 +176,9 @@ pub struct AppConfig {
     /// Network Configuration
     #[serde(default)]
     pub network: NetworkConfig,
+    /// Logging Configuration
+    #[serde(default)]
+    pub log: LogConfig,
 }
 
 fn default_webview_theme_injection() -> String {
@@ -195,6 +234,7 @@ fn default_keybindings() -> KeyMap {
     map.insert("shift+h".to_string(), Action::ShowHistory);
     map.insert("shift+x".to_string(), Action::ClearHistory);
     map.insert("t".to_string(), Action::OpenThemeEditor);
+    map.insert("shift+l".to_string(), Action::ShowLogViewer);
     map
 }
 
@@ -215,6 +255,7 @@ impl Default for AppConfig {
             keybindings: default_keybindings(),
             ui: UiConfig::default(),
             network: NetworkConfig::default(),
+            log: LogConfig::default(),
         }
     }
 }

@@ -4,6 +4,7 @@ pub mod cache;
 pub mod config;
 pub mod history;
 pub mod internal;
+pub mod log_buffer;
 pub mod notification;
 pub mod search;
 pub mod state;

@@ -6,19 +6,22 @@ mod cache;
 mod config;
 mod history;
 mod internal;
+mod log_buffer;
+mod notification;
 mod search;
 mod state;
 mod utils;
 
 use crate::internal::layout::HnLayout;
 use crate::internal::ui::{BookmarkListView, HistoryListView, StoryDetailView, StoryListView};
+use crate::log_buffer::{LogBuffer, LogBufferLayer};
 use crate::state::AppState;
 
 use std::process;
 
-/// Initialize file-based logging with daily rotation
-fn init_logging() {
-    let logs_dir = std::path::PathBuf::from("./logs");
+/// Initialize file-based logging with daily rotation and log buffer
+fn init_logging(log_config: &config::LogConfig) -> LogBuffer {
+    let logs_dir = std::path::PathBuf::from(&log_config.log_dir);
     std::fs::create_dir_all(&logs_dir).ok();
 
     let file_appender = tracing_appender::rolling::daily(logs_dir, "gpui-hn-app.log");
@@ -28,18 +31,38 @@ fn init_logging() {
     // This is necessary to ensure logs are flushed properly
     Box::leak(Box::new(guard));
 
-    tracing_subscriber::fmt()
+    // Create log buffer for in-app viewing
+    let log_buffer = LogBuffer::new(1000);
+    let buffer_layer = LogBufferLayer::new(log_buffer.clone());
+
+    // Build environment filter from config
+    let mut filter = tracing_subscriber::EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new(&log_config.log_level));
+
+    // Add module-specific filters
+    for (module, level) in &log_config.module_filters {
+        filter = filter.add_directive(format!("{}={}", module, level).parse().unwrap());
+    }
+
+    use tracing_subscriber::layer::SubscriberExt;
+    let subscriber = tracing_subscriber::fmt()
         .with_writer(non_blocking)
         .with_ansi(false)
-        .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info")),
-        )
-        .init();
+        .with_env_filter(filter)
+        .finish()
+        .with(buffer_layer);
+
+    tracing::subscriber::set_global_default(subscriber).expect("Failed to set global subscriber");
+
+    log_buffer
 }
 
 fn main() {
-    init_logging();
+    // Load app config first (needed for logging configuration)
+    let app_config = config::AppConfig::load();
+
+    // Initialize logging with config
+    let log_buffer = init_logging(&app_config.log);
 
     // Initialize Tokio runtime to support async operations in background tasks
     let runtime = tokio::runtime::Builder::new_multi_thread()
@@ -51,8 +74,7 @@ fn main() {
     Application::new().run(move |cx: &mut App| {
         gpui_component::theme::init(cx);
 
-        // Load app config (includes preferred theme name and optional theme_file)
-        let app_config = config::AppConfig::load();
+        // Get theme name from config
         let theme_name = gpui::SharedString::from(app_config.theme_name.clone());
 
         // Determine a directory to watch for themes.
@@ -84,7 +106,7 @@ fn main() {
             cx,
         );
 
-        let app_state = AppState::new(app_config, cx);
+        let app_state = AppState::new(app_config, log_buffer, cx);
 
         let result = cx.open_window(
             WindowOptions {

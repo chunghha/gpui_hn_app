@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.22.0] - 2025-12-04
+
+### Added - Logging & Debugging
+- **Configurable Logging**:
+  - Added `LogConfig` to `AppConfig` with customizable log level, directory, and module-specific filters
+  - Support for `RUST_LOG` environment variable override
+  - Optional performance metrics logging toggle
+  - Default log directory: `./logs` with daily rotation
+- **In-App Log Viewer**:
+  - Created `LogViewerView` component accessible via `Shift+L`
+  - Real-time log buffer capturing last 1000 log entries
+  - Color-coded syntax highlighting (ERROR=red, WARN=yellow, INFO=green, DEBUG=blue)
+  - Custom `LogBufferLayer` for tracing integration
+  - Thread-safe circular buffer implementation
+
+### Maintenance
+- **Code Cleanup**:
+  - Addressed all Clippy warnings
+  - Added proper `#[allow(dead_code)]` attributes for future-use notification infrastructure
+
+
 ## [0.21.0] - 2025-12-03
 
 ### Added - Error Handling & Notifications (Foundation)

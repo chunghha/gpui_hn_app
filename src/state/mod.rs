@@ -3,6 +3,7 @@ mod imp {
     use crate::bookmarks::Bookmarks;
     use crate::history::History;
     use crate::internal::models::{CommentViewModel, Story};
+    use crate::log_buffer::LogBuffer;
     use crate::search::SearchHistory;
     use crate::utils::html::extract_text_from_html;
     use futures::StreamExt;
@@ -18,6 +19,7 @@ mod imp {
         Bookmarks,
         History,
         ThemeEditor,
+        LogViewer,
     }
 
     #[derive(Clone, PartialEq, Debug, Copy)]
@@ -75,10 +77,16 @@ mod imp {
         // Scroll position persistence
         pub story_list_scroll_position: f32,
         pub article_scroll_position: f32,
+        // Logging
+        pub log_buffer: LogBuffer,
     }
 
     impl AppState {
-        pub fn new(config: crate::config::AppConfig, cx: &mut App) -> Entity<Self> {
+        pub fn new(
+            config: crate::config::AppConfig,
+            log_buffer: LogBuffer,
+            cx: &mut App,
+        ) -> Entity<Self> {
             let api_service = Arc::new(ApiService::new());
             let bookmarks = Bookmarks::load();
             let history = History::load();
@@ -129,6 +137,8 @@ mod imp {
                 // Scroll positions
                 story_list_scroll_position: 0.0,
                 article_scroll_position: 0.0,
+                // Logging
+                log_buffer,
             })
         }
 

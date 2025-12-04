@@ -1,5 +1,6 @@
 use std::time::SystemTime;
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NotificationType {
     Info,
@@ -7,6 +8,7 @@ pub enum NotificationType {
     Error,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct Notification {
     pub id: u64,
@@ -16,6 +18,7 @@ pub struct Notification {
     pub timeout_ms: u64,
 }
 
+#[allow(dead_code)]
 impl Notification {
     pub fn new(
         id: u64,
@@ -41,11 +44,13 @@ impl Notification {
     }
 }
 
+#[allow(dead_code)]
 pub struct NotificationManager {
     next_id: u64,
     pub notifications: Vec<Notification>,
 }
 
+#[allow(dead_code)]
 impl NotificationManager {
     pub fn new() -> Self {
         Self {

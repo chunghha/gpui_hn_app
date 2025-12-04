@@ -231,20 +231,22 @@ The TUI version (v0.9.4) has successfully implemented:
 
 ### v0.22.0 - Logging & Debugging 🐛
 **Focus**: Developer tools and observability
+**Status**: ✅ Complete
 
-- [ ] **Configurable Logging**
-    - [ ] Log level configuration per module
-    - [ ] Custom log directory support
-    - [ ] `RUST_LOG` environment variable override
-    - [ ] Conditional performance metrics
+- [x] **Configurable Logging**
+    - [x] Log level configuration per module
+    - [x] Custom log directory support
+    - [x] `RUST_LOG` environment variable override
+    - [x] Conditional performance metrics
 
-- [ ] **Log Viewer**
-    - [ ] In-app debug log viewer (toggle with `L`)
-    - [ ] Syntax highlighting for log levels
-    - [ ] Scrollable log history (last 1000 lines)
-    - [ ] Auto-scroll to bottom when opened
+- [x] **Log Viewer**
+    - [x] In-app debug log viewer (toggle with `Shift+L`)
+    - [x] Syntax highlighting for log levels
+    - [x] Scrollable log history (last 1000 lines)
+    - [x] Real-time log buffer integration
 
-**Dependencies**: `tracing`, `tracing-subscriber`, `tracing-appender`
+**Dependencies**: `tracing`, `tracing-subscriber`, `tracing-appender` ✅ Already included
+
 
 ---
 

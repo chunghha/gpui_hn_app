@@ -147,6 +147,11 @@ Note: copy `config.example.ron` to `config.ron` and edit values as needed.
   - `max_retries`: Maximum number of retry attempts for failed requests (default: `3`)
   - `initial_retry_delay_ms`: Initial delay before first retry in milliseconds (default: `1000`)
   - `max_retry_delay_ms`: Maximum delay between retries in milliseconds (default: `30000`)
+- `log`: Logging configuration settings:
+  - `log_level`: Default log level (default: `"info"`, options: `"trace"`, `"debug"`, `"info"`, `"warn"`, `"error"`)
+  - `log_dir`: Directory for log files (default: `"./logs"`)
+  - `module_filters`: Module-specific log levels (e.g., `{"gpui_hn_app::api": "debug"}`)
+  - `enable_performance_metrics`: Enable performance metrics logging (default: `false`)
 
 
 ## Internal UI components
@@ -209,6 +214,7 @@ Recommended helper tasks (see `Taskfile.yml` in the project root):
 | `H` | View history |
 | `X` | Clear history (in history view) |
 | `t` | Open theme editor (Save/Export available) |
+| `L` | Open log viewer (debug logs with syntax highlighting) |
 | `Esc` | Go back / Close webview |
 | `Cmd+Q` (Mac) / `Ctrl+Q` (Windows/Linux) | Quit application |
 | `Ctrl+R` | Focus search bar (supports Regex) |

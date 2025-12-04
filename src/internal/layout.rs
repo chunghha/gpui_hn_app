@@ -1,7 +1,7 @@
 use crate::api::StoryListType;
 use crate::internal::ui::{
-    BookmarkListView, HistoryListView, StoryDetailView, StoryListView, ThemeEditorView,
-    render_header, render_webview_controls,
+    BookmarkListView, HistoryListView, LogViewerView, StoryDetailView, StoryListView,
+    ThemeEditorView, render_header, render_webview_controls,
 };
 use crate::state::{AppState, ViewMode};
 use gpui::{prelude::*, *};
@@ -23,6 +23,7 @@ pub struct HnLayout {
     pub bookmark_list_view: Entity<BookmarkListView>,
     pub history_list_view: Entity<HistoryListView>,
     pub theme_editor_view: Entity<ThemeEditorView>,
+    log_viewer_view: Entity<LogViewerView>,
 }
 
 impl HnLayout {
@@ -70,6 +71,8 @@ impl HnLayout {
         window.focus(&focus_handle);
 
         let theme_editor_view = cx.new(|cx| ThemeEditorView::new(app_state.clone(), cx));
+        let log_buffer = app_state.read(cx).log_buffer.clone();
+        let log_viewer_view = cx.new(|cx| LogViewerView::new(app_state.clone(), log_buffer, cx));
 
         Self {
             title: "Hacker News".into(),
@@ -84,6 +87,7 @@ impl HnLayout {
             bookmark_list_view,
             history_list_view,
             theme_editor_view,
+            log_viewer_view,
         }
     }
     pub fn story_list_view(&self) -> Entity<StoryListView> {
@@ -199,6 +203,7 @@ impl Render for HnLayout {
                         ))
                 }
                 ViewMode::ThemeEditor => div().flex_1().child(self.theme_editor_view.clone()),
+                ViewMode::LogViewer => div().flex_1().child(self.log_viewer_view.clone()),
             })
             .when(loading, |this| {
                 this.child(

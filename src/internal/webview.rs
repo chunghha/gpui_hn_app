@@ -227,6 +227,7 @@ mod tests {
             keybindings: Default::default(),
             ui: Default::default(),
             network: Default::default(),
+            log: Default::default(),
         }
     }
 

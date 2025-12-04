@@ -64,7 +64,10 @@ pub fn handle_key_down(
         crate::config::Action::Back => {
             let view_mode = app_state.view_mode.clone();
             match view_mode {
-                ViewMode::Bookmarks | ViewMode::History | ViewMode::ThemeEditor => {
+                ViewMode::Bookmarks
+                | ViewMode::History
+                | ViewMode::ThemeEditor
+                | ViewMode::LogViewer => {
                     tracing::debug!("Back action - returning to List view");
                     crate::state::AppState::show_stories(viewer.app_state.clone(), cx);
                     cx.notify();
@@ -128,8 +131,8 @@ pub fn handle_key_down(
                         view.scroll_by(SCROLL_STEP);
                     });
                 }
-                ViewMode::Webview(_) | ViewMode::ThemeEditor => {
-                    // WebView and ThemeEditor handle their own scrolling
+                ViewMode::Webview(_) | ViewMode::ThemeEditor | ViewMode::LogViewer => {
+                    // WebView, ThemeEditor, and LogViewer handle their own scrolling
                 }
             }
             cx.notify();
@@ -158,8 +161,8 @@ pub fn handle_key_down(
                         view.scroll_by(-SCROLL_STEP);
                     });
                 }
-                ViewMode::Webview(_) | ViewMode::ThemeEditor => {
-                    // WebView and ThemeEditor handle their own scrolling
+                ViewMode::Webview(_) | ViewMode::ThemeEditor | ViewMode::LogViewer => {
+                    // WebView, ThemeEditor, and LogViewer handle their own scrolling
                 }
             }
             cx.notify();
@@ -188,8 +191,8 @@ pub fn handle_key_down(
                         view.scroll_to_top();
                     });
                 }
-                ViewMode::Webview(_) | ViewMode::ThemeEditor => {
-                    // WebView and ThemeEditor handle their own scrolling
+                ViewMode::Webview(_) | ViewMode::ThemeEditor | ViewMode::LogViewer => {
+                    // WebView, ThemeEditor, and LogViewer handle their own scrolling
                 }
             }
             cx.notify();
@@ -246,6 +249,13 @@ pub fn handle_key_down(
 
             viewer.app_state.update(cx, |state, cx| {
                 state.view_mode = ViewMode::ThemeEditor;
+                cx.notify();
+            });
+        }
+        crate::config::Action::ShowLogViewer => {
+            tracing::info!("Opening log viewer");
+            viewer.app_state.update(cx, |state, cx| {
+                state.view_mode = ViewMode::LogViewer;
                 cx.notify();
             });
         }
