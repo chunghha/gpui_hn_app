@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.23.0] - 2025-12-04
+
+### Added - Accessibility Features
+- **High Contrast Theme**:
+  - Implemented WCAG AAA compliant theme (Black/White/Yellow)
+  - Auto-switching logic based on `high_contrast_mode` config
+- **Accessibility Configuration**:
+  - Added `AccessibilityConfig` with `high_contrast_mode` and `verbose_status` flags
+- **Verbose Status Mode**:
+  - Implemented descriptive, full-sentence status bar messages for screen readers
+  - Context-aware updates including list type, item count, and sort order
+
+
 ## [0.22.0] - 2025-12-04
 
 ### Added - Logging & Debugging

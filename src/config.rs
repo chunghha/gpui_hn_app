@@ -130,6 +130,14 @@ impl Default for LogConfig {
     }
 }
 
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq, Default)]
+pub struct AccessibilityConfig {
+    #[serde(default)]
+    pub high_contrast_mode: bool,
+    #[serde(default)]
+    pub verbose_status: bool,
+}
+
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct AppConfig {
     pub font_sans: String,
@@ -179,6 +187,8 @@ pub struct AppConfig {
     /// Logging Configuration
     #[serde(default)]
     pub log: LogConfig,
+    #[serde(default)]
+    pub accessibility: AccessibilityConfig,
 }
 
 fn default_webview_theme_injection() -> String {
@@ -253,9 +263,10 @@ impl Default for AppConfig {
             window_width: 980.0,
             window_height: 720.0,
             keybindings: default_keybindings(),
-            ui: UiConfig::default(),
-            network: NetworkConfig::default(),
-            log: LogConfig::default(),
+            ui: Default::default(),
+            network: Default::default(),
+            log: Default::default(),
+            accessibility: Default::default(),
         }
     }
 }

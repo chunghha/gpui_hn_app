@@ -1,0 +1,25 @@
+{
+  "name": "High Contrast",
+  "is_light": false,
+  "colors": {
+    "background": "#000000",
+    "foreground": "#FFFFFF",
+    "muted": "#000000",
+    "muted_foreground": "#FFFF00",
+    "popover": "#000000",
+    "popover_foreground": "#FFFFFF",
+    "card": "#000000",
+    "card_foreground": "#FFFFFF",
+    "border": "#FFFFFF",
+    "input": "#000000",
+    "primary": "#FFFF00",
+    "primary_foreground": "#000000",
+    "secondary": "#0000FF",
+    "secondary_foreground": "#FFFFFF",
+    "accent": "#FFFF00",
+    "accent_foreground": "#000000",
+    "destructive": "#FF0000",
+    "destructive_foreground": "#FFFFFF",
+    "ring": "#FFFF00"
+  }
+}

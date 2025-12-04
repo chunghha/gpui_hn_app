@@ -83,13 +83,25 @@ impl Render for StoryListView {
         let colors = cx.theme().colors;
 
         // Format status bar text
-        let status_bar_text = ui_config
-            .status_bar_format
-            .replace("{mode}", &format!("{:?}", search_mode))
-            .replace("{category}", &format!("{}", current_list))
-            .replace("{count}", &format!("{}", stories.len()))
-            .replace("{sort}", &format!("{:?}", sort_option))
-            .replace("{order}", &format!("{:?}", sort_order));
+        let verbose_status = app_state_read.config.accessibility.verbose_status;
+        let status_bar_text = if verbose_status {
+            format!(
+                "Viewing {:?} results for {}, {} items loaded, sorted by {:?} in {:?} order.",
+                search_mode,
+                current_list,
+                stories.len(),
+                sort_option,
+                sort_order
+            )
+        } else {
+            ui_config
+                .status_bar_format
+                .replace("{mode}", &format!("{:?}", search_mode))
+                .replace("{category}", &format!("{}", current_list))
+                .replace("{count}", &format!("{}", stories.len()))
+                .replace("{sort}", &format!("{:?}", sort_option))
+                .replace("{order}", &format!("{:?}", sort_order))
+        };
 
         div()
             .flex()

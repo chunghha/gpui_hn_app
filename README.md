@@ -152,6 +152,9 @@ Note: copy `config.example.ron` to `config.ron` and edit values as needed.
   - `log_dir`: Directory for log files (default: `"./logs"`)
   - `module_filters`: Module-specific log levels (e.g., `{"gpui_hn_app::api": "debug"}`)
   - `enable_performance_metrics`: Enable performance metrics logging (default: `false`)
+- `accessibility`: Accessibility settings:
+  - `high_contrast_mode`: Enable high contrast theme (default: `false`)
+  - `verbose_status`: Enable descriptive status messages (default: `false`)
 
 
 ## Internal UI components

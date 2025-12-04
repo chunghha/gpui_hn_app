@@ -74,8 +74,11 @@ fn main() {
     Application::new().run(move |cx: &mut App| {
         gpui_component::theme::init(cx);
 
-        // Get theme name from config
-        let theme_name = gpui::SharedString::from(app_config.theme_name.clone());
+        // Get theme name from config, overriding if high contrast mode is enabled
+        let theme_name = match app_config.accessibility.high_contrast_mode {
+            true => gpui::SharedString::from("High Contrast"),
+            false => gpui::SharedString::from(app_config.theme_name.clone()),
+        };
 
         // Determine a directory to watch for themes.
         // If config specifies a file, watch its parent directory; otherwise watch the configured path.

@@ -228,6 +228,7 @@ mod tests {
             ui: Default::default(),
             network: Default::default(),
             log: Default::default(),
+            accessibility: Default::default(),
         }
     }
 

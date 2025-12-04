@@ -54,6 +54,38 @@
         // Available options: "score", "comments", "domain", "author", "age"
         list_view_items: ["score", "comments", "domain", "author", "age"],
     ),
+    
+    // Network configuration
+    network: (
+        // Maximum number of retry attempts for failed requests
+        max_retries: 3,
+        // Initial delay before first retry in milliseconds
+        initial_retry_delay_ms: 1000,
+        // Maximum delay between retries in milliseconds
+        max_retry_delay_ms: 30000,
+    ),
+
+    // Logging configuration
+    log: (
+        // Default log level: "trace", "debug", "info", "warn", "error"
+        log_level: "info",
+        // Directory for log files
+        log_dir: "./logs",
+        // Module-specific log levels
+        module_filters: {
+            "gpui_hn_app::api": "debug",
+        },
+        // Enable performance metrics logging
+        enable_performance_metrics: false,
+    ),
+
+    // Accessibility configuration
+    accessibility: (
+        // Enable high contrast theme (overrides theme_name)
+        high_contrast_mode: false,
+        // Enable verbose status messages for screen readers
+        verbose_status: false,
+    ),
 
     // Custom keybindings - override default keyboard shortcuts
     // Format: "key": Action or "modifier+key": Action
