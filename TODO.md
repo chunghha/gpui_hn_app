@@ -1,6 +1,6 @@
 # GPUI Hacker News App - Development Roadmap
 
-> **Current Version**: v0.27.0  
+> **Current Version**: v0.27.1  
 > **Target**: v1.0.0 (Feature-complete GPUI port)
 
 This roadmap is inspired by the feature-complete TUI implementation (`tui-hn-app`) and outlines features to port to the GPUI version (`gpui_hn_app`).
@@ -333,6 +333,16 @@ The TUI version (v0.9.4) has successfully implemented:
     - [x] Added config persistence for theme changes
     - [x] Improved debug logging for theme registry
     - [x] Renamed incompatible theme files to prevent conflicts
+
+---
+
+### v0.27.1 - CI/CD Integration 🔄
+**Focus**: Automation and Release Management
+**Status**: ✅ Complete
+
+- [x] **GitHub Actions**
+    - [x] CI workflow (`ci.yml`) for automated testing and linting
+    - [x] CD workflow (`cd.yml`) for automated releases on tag push
 
 ---
 

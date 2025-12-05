@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v0.27.1] - 2025-12-04
+
+### Added
+- GitHub Actions CI workflow (`ci.yml`) for automated testing and linting.
+- GitHub Actions CD workflow (`cd.yml`) for automated releases on tag push.
+
 ## [0.27.0] - 2025-12-04
 
 ### Added - Ghost in the Shell Theme

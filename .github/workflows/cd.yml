@@ -1,0 +1,37 @@
+name: CD
+
+on:
+  push:
+    tags:
+      - "v*"
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  release:
+    name: Release
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build Release
+        run: cargo build --release
+
+      - name: Package
+        run: |
+          cd target/release
+          tar -czf ../../gpui-hn-app-macos.tar.gz gpui-hn-app
+          cd ../..
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: gpui-hn-app-macos.tar.gz
+          generate_release_notes: true
