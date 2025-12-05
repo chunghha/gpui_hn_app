@@ -20,6 +20,7 @@ pub enum Action {
     ClearHistory,
     OpenThemeEditor,
     ShowLogViewer,
+    ShowKeyboardHelp,
     None,
 }
 
@@ -249,6 +250,8 @@ fn default_keybindings() -> KeyMap {
     map.insert("shift+x".to_string(), Action::ClearHistory);
     map.insert("t".to_string(), Action::OpenThemeEditor);
     map.insert("shift+l".to_string(), Action::ShowLogViewer);
+    map.insert("shift+?".to_string(), Action::ShowKeyboardHelp);
+    map.insert("?".to_string(), Action::ShowKeyboardHelp);
     map
 }
 

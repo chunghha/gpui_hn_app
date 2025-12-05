@@ -4,7 +4,9 @@ use crate::state::AppState;
 use gpui::{
     Context, Entity, FocusHandle, IntoElement, MouseButton, Render, Window, div, prelude::*,
 };
+use gpui_component::Sizable;
 use gpui_component::menu::ContextMenuExt;
+use gpui_component::spinner::Spinner;
 use gpui_component::theme::ActiveTheme;
 
 /// StoryListView - renders story list with infinite scroll
@@ -348,8 +350,11 @@ impl Render for StoryListView {
                                     div()
                                         .p_4()
                                         .flex()
+                                        .items_center()
                                         .justify_center()
+                                        .gap_2()
                                         .text_color(colors.foreground)
+                                        .child(Spinner::new().small().color(colors.foreground))
                                         .child("Loading stories..."),
                                 )
                             })
@@ -358,10 +363,13 @@ impl Render for StoryListView {
                                     div()
                                         .p_4()
                                         .flex()
+                                        .items_center()
                                         .justify_center()
+                                        .gap_2()
                                         .text_sm()
                                         .font_weight(gpui::FontWeight::SEMIBOLD)
                                         .text_color(colors.foreground)
+                                        .child(Spinner::new().xsmall().color(colors.foreground))
                                         .child("Loading more stories..."),
                                 )
                             })

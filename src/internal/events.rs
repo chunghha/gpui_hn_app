@@ -259,5 +259,12 @@ pub fn handle_key_down(
                 cx.notify();
             });
         }
+        crate::config::Action::ShowKeyboardHelp => {
+            tracing::debug!("Toggle keyboard help overlay");
+            viewer.app_state.update(cx, |state, cx| {
+                state.show_keyboard_help = !state.show_keyboard_help;
+                cx.notify();
+            });
+        }
     }
 }

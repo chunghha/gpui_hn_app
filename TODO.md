@@ -359,15 +359,15 @@ The TUI version (v0.9.4) has successfully implemented:
     - [ ] Remember and restore previous view state on hide
 
 ### UI/UX Polish
-- [ ] **Loading Indicators**
-    - [ ] Animated loading spinner
-    - [ ] Context-aware loading messages
-    - [ ] Progress percentage display
+- [x] **Loading Indicators**
+    - [x] Animated loading spinner
+    - [x] Context-aware loading messages
+    - [x] Progress percentage display (replaced by spinner)
 
-- [ ] **Keyboard Shortcuts Help**
-    - [ ] Press `?` to show help overlay
-    - [ ] Multi-page help system with tabs
-    - [ ] Context-sensitive shortcuts per view mode
+- [x] **Keyboard Shortcuts Help**
+    - [x] Press `?` to show help overlay
+    - [x] Multi-page help system with tabs (simplified to single view)
+    - [x] Context-sensitive shortcuts per view mode
 
 ---
 

@@ -79,6 +79,8 @@ mod imp {
         pub article_scroll_position: f32,
         // Logging
         pub log_buffer: LogBuffer,
+        // UI overlay state
+        pub show_keyboard_help: bool,
     }
 
     impl AppState {
@@ -139,6 +141,8 @@ mod imp {
                 article_scroll_position: 0.0,
                 // Logging
                 log_buffer,
+                // UI overlay state
+                show_keyboard_help: false,
             })
         }
 

@@ -240,6 +240,7 @@ Recommended helper tasks (see `Taskfile.yml` in the project root):
 | `Ctrl+M` | Cycle search mode (Title/Comments/Both) |
 | `Ctrl+S` | Cycle sort option (Score/Comments/Time) |
 | `O` | Toggle sort order (Asc/Desc) |
+| `?` | Show keyboard shortcuts help |
 | `Up` / `Down` | Navigate search history (in search bar) |
 
 Notes:

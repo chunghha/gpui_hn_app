@@ -4,11 +4,38 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [v0.27.1] - 2025-12-04
+## [v0.28.1] - 2025-12-04
 
-### Added
-- GitHub Actions CI workflow (`ci.yml`) for automated testing and linting.
-- GitHub Actions CD workflow (`cd.yml`) for automated releases on tag push.
+### Added - UI/UX Polish
+- **Animated Loading Indicators**:
+  - Replaced static "Loading..." text with animated spinners
+  - Integrated `gpui-component::spinner::Spinner` into global layout, story list, and story detail views
+  - Added context-aware loading messages (e.g., "Loading stories...", "Loading comments...")
+- **Keyboard Shortcuts Help**:
+  - Added help overlay triggered by `?` (Shift+/)
+  - Displays context-sensitive shortcuts based on current view mode
+  - Modal design with backdrop blur and click-to-dismiss
+
+### Changed
+- Refactored `story_detail.rs` loading logic to use pattern matching instead of if-else chains
+- Fixed clippy warnings in new UI components
+
+## [v0.28.0] - 2025-12-04
+
+### Added - WebView Integration Complete
+- **Domain Whitelist**:
+  - Added `webview_trusted_domains` configuration
+  - Only injects custom themes into trusted domains (e.g., "news.ycombinator.com")
+  - Prevents style breakage on arbitrary external sites
+- **Keybinding Conflict Detection**:
+  - Added validation for reserved platform keybindings (e.g., Cmd+Q)
+  - Logs warnings on startup if conflicts are detected
+
+### Changed
+- Refactored `make_init_script` to use pattern matching for cleaner logic
+- Updated `html2text` usage for better article rendering verification
+
+
 
 ## [0.27.0] - 2025-12-04
 

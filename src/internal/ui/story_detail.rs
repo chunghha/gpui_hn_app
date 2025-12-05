@@ -7,7 +7,9 @@ use gpui::{
     prelude::*,
 };
 use gpui_component::Disableable;
+use gpui_component::Sizable;
 use gpui_component::button::{Button, ButtonVariants};
+use gpui_component::spinner::Spinner;
 use gpui_component::theme::{ActiveTheme, ThemeColor};
 
 /// StoryDetailView - renders story detail with comments
@@ -124,8 +126,12 @@ impl Render for StoryDetailView {
                             .child(if selected_story_content_loading {
                                 div()
                                     .p_4()
+                                    .flex()
+                                    .items_center()
+                                    .gap_2()
                                     .text_sm()
                                     .text_color(colors.foreground)
+                                    .child(Spinner::new().small().color(colors.foreground))
                                     .child("Loading page content...")
                             } else if let Some(ref text) = selected_story_content {
                                 let style = MarkdownStyle {
@@ -315,35 +321,36 @@ fn render_comments_list(params: CommentsListParams) -> impl IntoElement {
                     params.story.descendants.unwrap_or(0)
                 )),
         )
-        .child(if params.loading && params.comments.is_empty() {
-            div()
+        .child(match (params.loading, params.comments.is_empty()) {
+            (true, true) => div()
+                .p_4()
+                .flex()
+                .items_center()
+                .gap_2()
+                .text_sm()
+                .text_color(params.colors.foreground)
+                .child(Spinner::new().small().color(params.colors.foreground))
+                .child("Loading comments..."),
+            (_, true) => div()
                 .p_4()
                 .text_sm()
                 .text_color(params.colors.foreground)
-                .child("Loading comments...")
-        } else if params.comments.is_empty() {
-            div()
-                .p_4()
-                .text_sm()
-                .text_color(params.colors.foreground)
-                .child("No comments yet")
-        } else {
-            div()
+                .child("No comments yet"),
+            _ => div()
                 .flex()
                 .flex_col()
                 .gap_2()
                 .children(params.comments.iter().map(|vm| {
                     render_comment(vm, params.colors, params.font_mono.clone(), params.max_run)
-                }))
+                })),
         })
         .when(has_more_comments && !params.comments.is_empty(), |this| {
-            let label_text = if params.loading {
-                "Loading more comments...".to_string()
-            } else {
-                format!(
+            let label_text = match params.loading {
+                true => "Loading more comments...".to_string(),
+                false => format!(
                     "Load More Comments ({} of {})",
                     params.loaded_comment_count, params.total_comment_count
-                )
+                ),
             };
 
             this.child(

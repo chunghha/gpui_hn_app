@@ -1,13 +1,15 @@
 use crate::api::StoryListType;
 use crate::internal::ui::{
-    BookmarkListView, HistoryListView, LogViewerView, StoryDetailView, StoryListView,
-    ThemeEditorView, render_header, render_webview_controls,
+    BookmarkListView, HistoryListView, KeyboardHelpOverlay, LogViewerView, StoryDetailView,
+    StoryListView, ThemeEditorView, render_header, render_webview_controls,
 };
 use crate::state::{AppState, ViewMode};
 use gpui::{prelude::*, *};
 use gpui_component::ActiveTheme;
+use gpui_component::Sizable;
 use gpui_component::button::{Button, ButtonVariants};
 use gpui_component::slider::{SliderEvent, SliderState};
+use gpui_component::spinner::Spinner;
 use gpui_component::webview::WebView;
 
 pub struct HnLayout {
@@ -24,6 +26,7 @@ pub struct HnLayout {
     pub history_list_view: Entity<HistoryListView>,
     pub theme_editor_view: Entity<ThemeEditorView>,
     log_viewer_view: Entity<LogViewerView>,
+    keyboard_help_view: Entity<KeyboardHelpOverlay>,
 }
 
 impl HnLayout {
@@ -73,6 +76,7 @@ impl HnLayout {
         let theme_editor_view = cx.new(|cx| ThemeEditorView::new(app_state.clone(), cx));
         let log_buffer = app_state.read(cx).log_buffer.clone();
         let log_viewer_view = cx.new(|cx| LogViewerView::new(app_state.clone(), log_buffer, cx));
+        let keyboard_help_view = cx.new(|cx| KeyboardHelpOverlay::new(app_state.clone(), cx));
 
         Self {
             title: "Hacker News".into(),
@@ -88,6 +92,7 @@ impl HnLayout {
             history_list_view,
             theme_editor_view,
             log_viewer_view,
+            keyboard_help_view,
         }
     }
     pub fn story_list_view(&self) -> Entity<StoryListView> {
@@ -211,12 +216,18 @@ impl Render for HnLayout {
                         .absolute()
                         .bottom_4()
                         .right_4()
-                        .p_2()
+                        .px_3()
+                        .py_2()
                         .rounded_md()
                         .bg(colors.accent)
                         .text_color(colors.accent_foreground)
+                        .flex()
+                        .items_center()
+                        .gap_2()
+                        .child(Spinner::new().small().color(colors.accent_foreground))
                         .child("Loading..."),
                 )
             })
+            .child(self.keyboard_help_view.clone())
     }
 }
