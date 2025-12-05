@@ -75,7 +75,20 @@ fn main() {
         .enable_all()
         .build()
         .expect("Failed to create Tokio runtime");
-    let _guard = runtime.enter();
+
+    // Initialize the global tokio runtime handle for the API module
+    api::init_tokio_handle(runtime.handle().clone());
+
+    // Pre-initialize the reqwest client inside the tokio runtime context
+    // This ensures the client is created with an active reactor
+    runtime.block_on(async {
+        // Create a temporary ApiService to initialize the reqwest client
+        // This forces the lazy initialization to happen in the runtime context
+        let _ = api::ApiService::new();
+    });
+
+    // Leak the runtime to keep it alive for the entire program lifetime
+    let _runtime = Box::leak(Box::new(runtime));
 
     Application::new().run(move |cx: &mut App| {
         gpui_component::theme::init(cx);

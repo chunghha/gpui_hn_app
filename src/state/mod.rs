@@ -175,7 +175,7 @@ mod imp {
             let task = cx.foreground_executor().spawn(async move {
                 // Fetch IDs in background
                 let ids_result = background
-                    .spawn(async move { api_service.fetch_story_ids(list_type) })
+                    .spawn(async move { api_service.fetch_story_ids(list_type, None).await })
                     .await;
 
                 match ids_result {
@@ -243,7 +243,11 @@ mod imp {
                 // Use concurrent fetch
                 let stories = cx
                     .background_executor()
-                    .spawn(async move { api_service.fetch_stories_concurrent(ids_to_fetch).await })
+                    .spawn(async move {
+                        api_service
+                            .fetch_stories_concurrent(ids_to_fetch, None)
+                            .await
+                    })
                     .await;
 
                 let _ = entity.update(cx, |state, cx| {
@@ -325,9 +329,7 @@ mod imp {
                     // Background fetch
                     background
                         .spawn(async move {
-                            let fetched = reqwest::blocking::get(&url)
-                                .and_then(|resp| resp.text())
-                                .unwrap_or_default();
+                            let fetched = crate::api::http_get(&url).await.unwrap_or_default();
                             let text = extract_text_from_html(&fetched);
                             let _ = tx.unbounded_send(text);
                         })
@@ -454,7 +456,7 @@ mod imp {
             let mut results = Vec::new();
 
             // Fetch comments concurrently
-            let comments = api.fetch_comments_concurrent(ids).await;
+            let comments = api.fetch_comments_concurrent(ids, None).await;
 
             for comment in comments {
                 let kids = comment.kids.clone();

@@ -1,13 +1,9 @@
 use gpui_hn_app::api::{ApiService, StoryListType};
 use serde_json::json;
-use tokio::runtime::Runtime;
 
-#[test]
-fn test_fetch_story_list_integration() {
-    let rt = Runtime::new().unwrap();
-    let _guard = rt.enter();
-
-    let mut server = mockito::Server::new();
+#[tokio::test]
+async fn test_fetch_story_list_integration() {
+    let mut server = mockito::Server::new_async().await;
     let mock = server
         .mock("GET", "/topstories.json")
         .with_status(200)
@@ -16,21 +12,17 @@ fn test_fetch_story_list_integration() {
         .create();
 
     let service = ApiService::with_base_url(format!("{}/", server.url()));
-    drop(_guard);
 
-    let result = service.fetch_story_ids(StoryListType::Top);
+    let result = service.fetch_story_ids(StoryListType::Top, None).await;
 
     mock.assert();
     assert!(result.is_ok());
     assert_eq!(result.unwrap(), vec![1, 2, 3, 4, 5]);
 }
 
-#[test]
-fn test_fetch_story_details_integration() {
-    let rt = Runtime::new().unwrap();
-    let _guard = rt.enter();
-
-    let mut server = mockito::Server::new();
+#[tokio::test]
+async fn test_fetch_story_details_integration() {
+    let mut server = mockito::Server::new_async().await;
     let story_json = json!({
         "id": 100,
         "title": "Integration Test Story",
@@ -47,9 +39,8 @@ fn test_fetch_story_details_integration() {
         .create();
 
     let service = ApiService::with_base_url(format!("{}/", server.url()));
-    drop(_guard);
 
-    let result = service.fetch_story_content(100);
+    let result = service.fetch_story_content(100).await;
 
     mock.assert();
     assert!(result.is_ok());

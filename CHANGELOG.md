@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v0.29.0] - 2025-12-09
+
+### Added - API Service Improvements
+- Refactored the API/network layer to an async-first design with non-blocking HTTP requests executed via a tokio runtime handle created at startup.
+- Implemented request deduplication for in-flight network calls to avoid duplicate requests for the same resource.
+- Added exponential backoff and retry logic with cancellation support for stale requests.
+- Improved tracing and richer error context for network operations to aid debugging and observability.
+
+
 ## [v0.28.1] - 2025-12-04
 
 ### Added - UI/UX Polish

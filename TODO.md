@@ -1,6 +1,6 @@
 # GPUI Hacker News App - Development Roadmap
 
-> **Current Version**: v0.27.1  
+> **Current Version**: v0.29.0  
 > **Target**: v1.0.0 (Feature-complete GPUI port)
 
 This roadmap is inspired by the feature-complete TUI implementation (`tui-hn-app`) and outlines features to port to the GPUI version (`gpui_hn_app`).
@@ -343,6 +343,21 @@ The TUI version (v0.9.4) has successfully implemented:
 - [x] **GitHub Actions**
     - [x] CI workflow (`ci.yml`) for automated testing and linting
     - [x] CD workflow (`cd.yml`) for automated releases on tag push
+
+---
+### v0.29.0 - API Service Refactor 🔁
+**Focus**: Network & API improvements
+**Status**: ✅ Complete
+
+- [x] **Async-first API Layer**
+    - [x] Refactor network layer to async `reqwest::Client` executed via a tokio runtime handle at startup
+    - [x] Bridge GPUI executor and tokio by spawning network tasks on a global tokio `Handle`
+- [x] **Request Deduplication**
+    - [x] Shared in-flight request map to prevent duplicate network requests
+- [x] **Retry & Backoff**
+    - [x] Exponential backoff and retry logic for transient errors with cancellation for stale requests
+- [x] **Observability**
+    - [x] Improved tracing and richer error context for network operations
 
 ---
 
