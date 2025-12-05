@@ -26,6 +26,7 @@ pub fn make_init_script(
     fg_color: &str,
     link_color: &str,
     zoom_level: u32,
+    current_url: Option<&str>,
 ) -> String {
     // Prepare values and JSON-encode them so they're safe to interpolate into JS.
     let zoom_str = format!("{}%", zoom_level);
@@ -43,12 +44,34 @@ pub fn make_init_script(
     // Unknown/invalid values are treated as "none" (do not inject) to avoid modifying pages.
     let inject_theme = {
         let mode = config.webview_theme_injection.to_lowercase();
-        match mode.as_str() {
+        let mode_enabled = match mode.as_str() {
             "none" => false,
             "light" => !is_dark_theme,
             "dark" => is_dark_theme,
             "both" => true,
             _ => false,
+        };
+
+        // Check domain whitelist if enabled
+        match (mode_enabled, config.webview_trusted_domains.is_empty()) {
+            (false, _) => false,
+            (true, true) => true, // No whitelist configured, allow all
+            (true, false) => {
+                // Whitelist configured, check if domain is trusted
+                current_url
+                    .map(|url| {
+                        let domain = url
+                            .trim_start_matches("https://")
+                            .trim_start_matches("http://")
+                            .split('/')
+                            .next()
+                            .unwrap_or("");
+                        config.webview_trusted_domains.iter().any(|trusted| {
+                            domain == trusted.as_str() || domain.ends_with(&format!(".{}", trusted))
+                        })
+                    })
+                    .unwrap_or(false)
+            }
         }
     };
 
@@ -221,6 +244,7 @@ mod tests {
             webview_zoom: 120,
             webview_theme_injection: theme_injection.to_string(),
             webview_theme_mode: "invasive".to_string(),
+            webview_trusted_domains: Vec::new(),
             soft_wrap_max_run: 20,
             window_width: 980.0,
             window_height: 720.0,
@@ -235,7 +259,7 @@ mod tests {
     #[test]
     fn test_zoom_always_included() {
         let config = mock_config("none");
-        let script = make_init_script(&config, false, "#FFFFFF", "#000000", "#0000FF", 100);
+        let script = make_init_script(&config, false, "#FFFFFF", "#000000", "#0000FF", 100, None);
 
         // Verify zoom is included
         assert!(script.contains("var zoom = \"100%\""));
@@ -246,13 +270,16 @@ mod tests {
     fn test_zoom_levels() {
         let config = mock_config("none");
 
-        let script_100 = make_init_script(&config, false, "#FFFFFF", "#000000", "#0000FF", 100);
+        let script_100 =
+            make_init_script(&config, false, "#FFFFFF", "#000000", "#0000FF", 100, None);
         assert!(script_100.contains("\"100%\""));
 
-        let script_120 = make_init_script(&config, false, "#FFFFFF", "#000000", "#0000FF", 120);
+        let script_120 =
+            make_init_script(&config, false, "#FFFFFF", "#000000", "#0000FF", 120, None);
         assert!(script_120.contains("\"120%\""));
 
-        let script_150 = make_init_script(&config, false, "#FFFFFF", "#000000", "#0000FF", 150);
+        let script_150 =
+            make_init_script(&config, false, "#FFFFFF", "#000000", "#0000FF", 150, None);
         assert!(script_150.contains("\"150%\""));
     }
 
@@ -261,10 +288,12 @@ mod tests {
         let config = mock_config("none");
 
         // Should not inject theme for either dark or light
-        let script_dark = make_init_script(&config, true, "#000000", "#FFFFFF", "#0000FF", 120);
+        let script_dark =
+            make_init_script(&config, true, "#000000", "#FFFFFF", "#0000FF", 120, None);
         assert!(!script_dark.contains("createElement('style')"));
 
-        let script_light = make_init_script(&config, false, "#FFFFFF", "#000000", "#0000FF", 120);
+        let script_light =
+            make_init_script(&config, false, "#FFFFFF", "#000000", "#0000FF", 120, None);
         assert!(!script_light.contains("createElement('style')"));
     }
 
@@ -273,12 +302,14 @@ mod tests {
         let config = mock_config("light");
 
         // Should inject for light theme only
-        let script_light = make_init_script(&config, false, "#FFFFFF", "#000000", "#0000FF", 120);
+        let script_light =
+            make_init_script(&config, false, "#FFFFFF", "#000000", "#0000FF", 120, None);
         assert!(script_light.contains("createElement('style')"));
         assert!(script_light.contains("data-gpui-theme"));
 
         // Should NOT inject for dark theme
-        let script_dark = make_init_script(&config, true, "#000000", "#FFFFFF", "#0000FF", 120);
+        let script_dark =
+            make_init_script(&config, true, "#000000", "#FFFFFF", "#0000FF", 120, None);
         assert!(!script_dark.contains("createElement('style')"));
     }
 
@@ -287,12 +318,14 @@ mod tests {
         let config = mock_config("dark");
 
         // Should inject for dark theme only
-        let script_dark = make_init_script(&config, true, "#000000", "#FFFFFF", "#0000FF", 120);
+        let script_dark =
+            make_init_script(&config, true, "#000000", "#FFFFFF", "#0000FF", 120, None);
         assert!(script_dark.contains("createElement('style')"));
         assert!(script_dark.contains("data-gpui-theme"));
 
         // Should NOT inject for light theme
-        let script_light = make_init_script(&config, false, "#FFFFFF", "#000000", "#0000FF", 120);
+        let script_light =
+            make_init_script(&config, false, "#FFFFFF", "#000000", "#0000FF", 120, None);
         assert!(!script_light.contains("createElement('style')"));
     }
 
@@ -301,10 +334,12 @@ mod tests {
         let config = mock_config("both");
 
         // Should inject for both dark and light themes
-        let script_dark = make_init_script(&config, true, "#000000", "#FFFFFF", "#0000FF", 120);
+        let script_dark =
+            make_init_script(&config, true, "#000000", "#FFFFFF", "#0000FF", 120, None);
         assert!(script_dark.contains("createElement('style')"));
 
-        let script_light = make_init_script(&config, false, "#FFFFFF", "#000000", "#0000FF", 120);
+        let script_light =
+            make_init_script(&config, false, "#FFFFFF", "#000000", "#0000FF", 120, None);
         assert!(script_light.contains("createElement('style')"));
     }
 
@@ -313,14 +348,14 @@ mod tests {
         let config = mock_config("invalid_mode");
 
         // Unknown modes should be treated as "none"
-        let script = make_init_script(&config, false, "#FFFFFF", "#000000", "#0000FF", 120);
+        let script = make_init_script(&config, false, "#FFFFFF", "#000000", "#0000FF", 120, None);
         assert!(!script.contains("createElement('style')"));
     }
 
     #[test]
     fn test_color_values_in_script() {
         let config = mock_config("both");
-        let script = make_init_script(&config, true, "#123456", "#ABCDEF", "#FF00FF", 120);
+        let script = make_init_script(&config, true, "#123456", "#ABCDEF", "#FF00FF", 120, None);
 
         // Verify colors are JSON-encoded and present
         assert!(script.contains("var bgColor = \"#123456\""));
@@ -332,17 +367,19 @@ mod tests {
     fn test_dark_theme_flag() {
         let config = mock_config("none");
 
-        let script_dark = make_init_script(&config, true, "#000000", "#FFFFFF", "#0000FF", 120);
+        let script_dark =
+            make_init_script(&config, true, "#000000", "#FFFFFF", "#0000FF", 120, None);
         assert!(script_dark.contains("var isDarkTheme = true"));
 
-        let script_light = make_init_script(&config, false, "#FFFFFF", "#000000", "#0000FF", 120);
+        let script_light =
+            make_init_script(&config, false, "#FFFFFF", "#000000", "#0000FF", 120, None);
         assert!(script_light.contains("var isDarkTheme = false"));
     }
 
     #[test]
     fn test_css_selectors_present() {
         let config = mock_config("both");
-        let script = make_init_script(&config, true, "#000000", "#FFFFFF", "#0000FF", 120);
+        let script = make_init_script(&config, true, "#000000", "#FFFFFF", "#0000FF", 120, None);
 
         // Verify CSS selectors are included when theme injection is enabled
         assert!(script.contains("html {"));
@@ -356,7 +393,7 @@ mod tests {
     #[test]
     fn test_script_has_iife_structure() {
         let config = mock_config("none");
-        let script = make_init_script(&config, false, "#FFFFFF", "#000000", "#0000FF", 120);
+        let script = make_init_script(&config, false, "#FFFFFF", "#000000", "#0000FF", 120, None);
 
         // Verify the script has IIFE (Immediately Invoked Function Expression) structure
         assert!(script.contains("(function() {"));
@@ -366,7 +403,7 @@ mod tests {
     #[test]
     fn test_dom_ready_handling() {
         let config = mock_config("none");
-        let script = make_init_script(&config, false, "#FFFFFF", "#000000", "#0000FF", 120);
+        let script = make_init_script(&config, false, "#FFFFFF", "#000000", "#0000FF", 120, None);
 
         // Verify DOMContentLoaded event handling
         assert!(script.contains("if (document.readyState === 'loading')"));
@@ -378,21 +415,35 @@ mod tests {
     fn test_case_insensitive_injection_mode() {
         // Test that uppercase "BOTH" works
         let config_upper = mock_config("BOTH");
-        let script_upper =
-            make_init_script(&config_upper, true, "#000000", "#FFFFFF", "#0000FF", 120);
+        let script_upper = make_init_script(
+            &config_upper,
+            true,
+            "#000000",
+            "#FFFFFF",
+            "#0000FF",
+            120,
+            None,
+        );
         assert!(script_upper.contains("createElement('style')"));
 
         // Test that mixed case "Dark" works
         let config_mixed = mock_config("Dark");
-        let script_mixed =
-            make_init_script(&config_mixed, true, "#000000", "#FFFFFF", "#0000FF", 120);
+        let script_mixed = make_init_script(
+            &config_mixed,
+            true,
+            "#000000",
+            "#FFFFFF",
+            "#0000FF",
+            120,
+            None,
+        );
         assert!(script_mixed.contains("createElement('style')"));
     }
 
     #[test]
     fn test_background_image_detection() {
         let config = mock_config("both");
-        let script = make_init_script(&config, true, "#000000", "#FFFFFF", "#0000FF", 120);
+        let script = make_init_script(&config, true, "#000000", "#FFFFFF", "#0000FF", 120, None);
 
         // Verify background image detection is included
         assert!(script.contains("getComputedStyle(document.documentElement)"));
@@ -404,7 +455,7 @@ mod tests {
     #[test]
     fn test_transparency_detection_helper() {
         let config = mock_config("both");
-        let script = make_init_script(&config, true, "#000000", "#FFFFFF", "#0000FF", 120);
+        let script = make_init_script(&config, true, "#000000", "#FFFFFF", "#0000FF", 120, None);
 
         // Verify isTransparent helper function is included
         assert!(script.contains("function isTransparent(color)"));
@@ -415,7 +466,7 @@ mod tests {
     #[test]
     fn test_selective_selector_targeting() {
         let config = mock_config("both");
-        let script = make_init_script(&config, true, "#000000", "#FFFFFF", "#0000FF", 120);
+        let script = make_init_script(&config, true, "#000000", "#FFFFFF", "#0000FF", 120, None);
 
         // Verify :not() selectors are used to avoid overriding existing styles
         assert!(script.contains(":not([style*=\"background\"])"));
@@ -430,7 +481,7 @@ mod tests {
     fn test_css_vars_mode() {
         let mut config = mock_config("both");
         config.webview_theme_mode = "css-vars".to_string();
-        let script = make_init_script(&config, true, "#000000", "#FFFFFF", "#0000FF", 120);
+        let script = make_init_script(&config, true, "#000000", "#FFFFFF", "#0000FF", 120, None);
 
         // Verify CSS variables are set
         assert!(script.contains("'data-gpui-theme', 'css-vars'"));
@@ -443,7 +494,7 @@ mod tests {
     #[test]
     fn test_invasive_mode_default() {
         let config = mock_config("both");
-        let script = make_init_script(&config, true, "#000000", "#FFFFFF", "#0000FF", 120);
+        let script = make_init_script(&config, true, "#000000", "#FFFFFF", "#0000FF", 120, None);
 
         // Verify invasive mode is used by default
         assert!(script.contains("'data-gpui-theme', 'invasive'"));
@@ -454,7 +505,7 @@ mod tests {
     fn test_css_vars_no_important() {
         let mut config = mock_config("both");
         config.webview_theme_mode = "css-vars".to_string();
-        let script = make_init_script(&config, true, "#000000", "#FFFFFF", "#0000FF", 120);
+        let script = make_init_script(&config, true, "#000000", "#FFFFFF", "#0000FF", 120, None);
 
         // Verify CSS vars mode does NOT use !important for theme colors
         assert!(!script.contains("background-color:' + bgColor + ' !important"));
@@ -465,7 +516,7 @@ mod tests {
     fn test_css_vars_root_selector() {
         let mut config = mock_config("both");
         config.webview_theme_mode = "css-vars".to_string();
-        let script = make_init_script(&config, true, "#000000", "#FFFFFF", "#0000FF", 120);
+        let script = make_init_script(&config, true, "#000000", "#FFFFFF", "#0000FF", 120, None);
 
         // Verify :root selector is used for CSS variables
         assert!(script.contains(":root {"));
@@ -478,7 +529,7 @@ mod tests {
     fn test_css_vars_respects_injection_mode() {
         let mut config = mock_config("none");
         config.webview_theme_mode = "css-vars".to_string();
-        let script = make_init_script(&config, true, "#000000", "#FFFFFF", "#0000FF", 120);
+        let script = make_init_script(&config, true, "#000000", "#FFFFFF", "#0000FF", 120, None);
 
         // If injection is "none", CSS vars should not be injected either
         assert!(!script.contains(":root"));
@@ -489,7 +540,7 @@ mod tests {
     fn test_css_vars_case_insensitive() {
         let mut config = mock_config("both");
         config.webview_theme_mode = "CSS-VARS".to_string();
-        let script = make_init_script(&config, true, "#000000", "#FFFFFF", "#0000FF", 120);
+        let script = make_init_script(&config, true, "#000000", "#FFFFFF", "#0000FF", 120, None);
 
         // Verify mode detection is case-insensitive
         assert!(script.contains("'data-gpui-theme', 'css-vars'"));

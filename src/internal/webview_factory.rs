@@ -35,6 +35,8 @@ pub fn create_webview<V>(
         );
 
         // Build initialization script
+        // Note: At initialization time, no URL is loaded yet, so we pass None.
+        // The domain whitelist check will allow injection in this case if trusted_domains is empty.
         let init_script = make_init_script(
             config,
             is_dark_theme,
@@ -42,6 +44,7 @@ pub fn create_webview<V>(
             &fg_color,
             &link_color,
             zoom_level,
+            None,
         );
         let builder = builder.with_initialization_script(&init_script);
 

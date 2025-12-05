@@ -94,8 +94,8 @@ The TUI version (v0.9.4) has successfully implemented:
 
 - [x] **Better Article Rendering**
     - [x] Syntax highlighting for code blocks (using `syntect`)
-    - [ ] Table rendering (ASCII style)
-    - [ ] Image placeholders with alt text extraction
+    - [x] Table rendering (handled by html2text)
+    - [x] Image placeholders with alt text extraction
     - [x] Improved list and quote styling
 
 - [x] **Story Metadata Display**
@@ -166,10 +166,10 @@ The TUI version (v0.9.4) has successfully implemented:
     - [x] Hierarchical resolution (context-specific overrides global)
     - [x] Support for simple keys, special keys, and modifiers
 
-- [ ] **Keybinding Conflict Detection**
-    - [ ] Warn user if custom bindings conflict on startup
-    - [ ] Display notifications for conflicts
-    - [ ] Log conflict details
+- [x] **Keybinding Conflict Detection**
+    - [x] Warn user if custom bindings conflict on startup
+    - [x] Display notifications for conflicts (via log viewer)
+    - [x] Log conflict details
 
 - [x] **UI Customization**
     - [x] Customizable padding (horizontal and vertical)
@@ -349,8 +349,8 @@ The TUI version (v0.9.4) has successfully implemented:
 ## 🎯 GPUI-Specific Enhancements (Post-Port)
 
 ### WebView Integration
-- [ ] **Theme Injection Improvements**
-    - [ ] Add domain whitelist for trusted pages
+- [x] **Theme Injection Improvements**
+    - [x] Add domain whitelist for trusted pages (`webview_trusted_domains` config)
     - [x] Improve selector scoping and background detection
     - [x] Runtime UI toggle to enable/disable injection
     - [x] Non-invasive theming mode with CSS variables

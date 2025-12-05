@@ -64,6 +64,12 @@ fn main() {
     // Initialize logging with config
     let log_buffer = init_logging(&app_config.log);
 
+    // Validate keybindings and log any conflicts
+    let keybinding_conflicts = app_config.validate_keybindings();
+    for conflict in &keybinding_conflicts {
+        tracing::warn!("{}", conflict);
+    }
+
     // Initialize Tokio runtime to support async operations in background tasks
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_all()

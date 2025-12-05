@@ -165,6 +165,10 @@ pub struct AppConfig {
     /// How to apply theme injection: "invasive" (uses !important) or "css-vars" (sets CSS variables)
     #[serde(default = "default_webview_theme_mode")]
     pub webview_theme_mode: String,
+    /// List of trusted domains for WebView theme injection (e.g., ["github.com", "example.com"])
+    /// If empty, all domains are allowed. If non-empty, theme injection only applies to these domains.
+    #[serde(default)]
+    pub webview_trusted_domains: Vec<String>,
     /// Maximum run length before inserting soft-wrap break characters.
     /// Set to 0 to disable the soft-wrap insertion behavior.
     #[serde(default = "default_soft_wrap_max_run")]
@@ -259,6 +263,7 @@ impl Default for AppConfig {
             webview_zoom: 120,
             webview_theme_injection: default_webview_theme_injection(),
             webview_theme_mode: default_webview_theme_mode(),
+            webview_trusted_domains: Vec::new(),
             soft_wrap_max_run: default_soft_wrap_max_run(),
             window_width: 980.0,
             window_height: 720.0,
@@ -413,6 +418,31 @@ impl AppConfig {
                 tracing::error!("Failed to update config at {}: {}", path.display(), e);
             }
         }
+    }
+
+    pub fn validate_keybindings(&self) -> Vec<String> {
+        let mut conflicts = Vec::new();
+
+        // Check for hardcoded safety keys
+        // Cmd+Q (Mac) or Ctrl+Q (others) is hardcoded in events.rs
+        // If user maps this to something else, it's a conflict because the hardcoded check wins.
+        let platform_key = if cfg!(target_os = "macos") {
+            "cmd+q"
+        } else {
+            "ctrl+q"
+        };
+
+        if let Some(action) = self.keybindings.get(platform_key)
+            && *action != Action::Quit
+            && *action != Action::None
+        {
+            conflicts.push(format!(
+                "Keybinding '{}' is reserved for Quit. Your binding to '{:?}' will be ignored.",
+                platform_key, action
+            ));
+        }
+
+        conflicts
     }
 }
 
