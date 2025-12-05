@@ -68,6 +68,12 @@ pub fn render_header(
                                         Some(cx.theme().is_dark()),
                                     );
 
+                                    tracing::info!(
+                                        "Current theme: '{}', Computed next: '{}'",
+                                        current_config_name,
+                                        computed_name
+                                    );
+
                                     let desired_shared: SharedString =
                                         gpui::SharedString::from(computed_name.clone());
 
@@ -84,13 +90,55 @@ pub fn render_header(
                                         gpui_component::Theme::global_mut(cx).apply_config(&theme);
                                         app_state_for_theme_toggle.update(cx, |state, cx| {
                                             state.config.theme_name = computed_name.clone();
+                                            state.config.save();
                                             cx.notify();
                                         });
                                     } else {
-                                        tracing::warn!(
-                                            "Requested theme '{}' not found in ThemeRegistry",
-                                            computed_name
-                                        );
+                                        // Fallback: Try case-insensitive lookup
+                                        let found_theme = {
+                                            let registry =
+                                                gpui_component::ThemeRegistry::global(cx);
+                                            let themes = registry.themes();
+
+                                            // Debug: Log all available themes
+                                            let available: Vec<_> =
+                                                themes.keys().map(|k| k.to_string()).collect();
+                                            tracing::debug!(
+                                                "Available themes in registry: {:?}",
+                                                available
+                                            );
+
+                                            let computed_lower = computed_name.to_lowercase();
+                                            themes
+                                                .iter()
+                                                .find(|(name, _)| {
+                                                    name.to_string().to_lowercase()
+                                                        == computed_lower
+                                                })
+                                                .map(|(name, theme)| {
+                                                    (name.to_string(), theme.clone())
+                                                })
+                                        };
+
+                                        if let Some((actual_name, theme)) = found_theme {
+                                            tracing::info!(
+                                                target: "gpui_component::theme::registry",
+                                                "Reload active theme (fallback): \"{}\"",
+                                                actual_name
+                                            );
+                                            gpui_component::Theme::global_mut(cx)
+                                                .apply_config(&theme);
+                                            app_state_for_theme_toggle.update(cx, |state, cx| {
+                                                state.config.theme_name = actual_name;
+                                                state.config.save();
+                                                cx.notify();
+                                            });
+                                        } else {
+                                            tracing::warn!(
+                                                "Requested theme '{}' not found in ThemeRegistry",
+                                                computed_name
+                                            );
+                                        }
                                     }
                                 })
                                 .child(if is_dark {

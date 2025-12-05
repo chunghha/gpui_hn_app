@@ -221,7 +221,7 @@ fn default_window_height() -> f32 {
 }
 
 fn default_theme_name() -> String {
-    "Flexoki Light".to_string()
+    "Ghost in the Shell Dark".to_string()
 }
 
 fn default_theme_file() -> String {

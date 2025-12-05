@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.27.0] - 2025-12-04
+
+### Added - Ghost in the Shell Theme
+- **New Theme**: "Ghost in the Shell" (Dark/Light variants)
+- **Theme Switching**: Fixed case-sensitivity issue in theme toggler
+- **Configuration**: Updated default theme to "Ghost in the Shell Dark"
+
 ## [0.26.0] - 2025-12-04
 
 ### Added - Story Loading Progress

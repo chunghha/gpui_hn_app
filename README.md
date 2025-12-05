@@ -65,6 +65,22 @@ The codebase follows a clear separation between public APIs (`api`, `config`, `s
 
 Note: These screenshots were taken with version `v0.6.0`. Subsequent UI enhancements were made after that release, so the current app appearance may differ from the images shown here.
 
+### Current Implementation
+
+| Dark Theme (Updated) | Light Theme (Updated) |
+|----------------------|-----------------------|
+| ![Updated Dark Theme](screenshots/updated_dark_theme.png) | ![Updated Light Theme](screenshots/updated_light_theme.png) |
+| Latest dark theme implementation | Latest light theme implementation |
+
+### Ghost in the Shell Theme (Concept Preview)
+
+> **Note**: The following images are **concept mockups** generated to visualize the intended aesthetic of the "Ghost in the Shell" theme. The actual implementation in the app applies these color palettes to the existing UI structure.
+
+| Dark Mode (Concept) | Light Mode (Concept) |
+|-----------|------------|
+| ![Ghost in the Shell Dark](screenshots/ghost_in_the_shell_dark.png) | ![Ghost in the Shell Light](screenshots/ghost_in_the_shell_light.png) |
+| Cyberpunk aesthetic with neon green accents | Clean, high-contrast light theme |
+
 ## Configuration
 
 The app can be configured via a `config.ron` file. Place this file either:

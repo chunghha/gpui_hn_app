@@ -1,6 +1,6 @@
 # GPUI Hacker News App - Development Roadmap
 
-> **Current Version**: v0.19.0  
+> **Current Version**: v0.27.0  
 > **Target**: v1.0.0 (Feature-complete GPUI port)
 
 This roadmap is inspired by the feature-complete TUI implementation (`tui-hn-app`) and outlines features to port to the GPUI version (`gpui_hn_app`).
@@ -316,6 +316,23 @@ The TUI version (v0.9.4) has successfully implemented:
     - [x] Display loaded/total story count (e.g., "20/500 loaded")
     - [x] New placeholders: `{loaded}`, `{total}`
     - [x] Verbose mode shows full progress sentence
+
+---
+
+### v0.27.0 - Ghost in the Shell Theme 👻
+**Focus**: Visual aesthetics and theming stability
+**Status**: ✅ Complete
+
+- [x] **New Theme**
+    - [x] "Ghost in the Shell" theme (Dark/Light variants)
+    - [x] Cyberpunk aesthetic with neon green accents
+    - [x] Custom syntax highlighting colors
+
+- [x] **Theme System Fixes**
+    - [x] Fixed case-sensitivity issue in theme toggler
+    - [x] Added config persistence for theme changes
+    - [x] Improved debug logging for theme registry
+    - [x] Renamed incompatible theme files to prevent conflicts
 
 ---
 
